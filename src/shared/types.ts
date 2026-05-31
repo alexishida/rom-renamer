@@ -1,0 +1,241 @@
+export type PlatformName =
+  // Nintendo — cartuchos
+  | 'NES'
+  | 'SNES'
+  | 'Nintendo 64'
+  | 'Game Boy'
+  | 'Game Boy Color'
+  | 'Game Boy Advance'
+  | 'Nintendo DS'
+  | 'Nintendo 3DS'
+  // Nintendo — discos
+  | 'GameCube'
+  | 'Wii'
+  | 'Wii U'
+  // Sega — cartuchos
+  | 'Master System'
+  | 'Game Gear'
+  | 'Mega Drive'
+  | 'Sega 32X'
+  // Sega — discos
+  | 'Mega CD'
+  | 'Sega Saturn'
+  | 'Dreamcast'
+  // Sony
+  | 'PlayStation 1'
+  | 'PlayStation 2'
+  | 'PlayStation 3'
+  | 'PlayStation Portable'
+  // Atari
+  | 'Atari 2600'
+  | 'Atari 7800'
+  | 'Atari Jaguar'
+  // SNK
+  | 'Neo Geo'
+  | 'Neo Geo Pocket'
+  // Outros
+  | 'PC Engine'
+  | 'WonderSwan'
+
+export type Confidence = 'high' | 'medium' | 'low' | 'none'
+
+export type MatchSource =
+  | 'no-intro'
+  | 'redump'
+  | 'screenscraper'
+  | 'igdb'
+  | 'fuzzy'
+  | null
+
+export type RomStatus =
+  | 'pending'
+  | 'identifying'
+  | 'identified'
+  | 'validated'
+  | 'ignored'
+  | 'renamed'
+  | 'error'
+
+export type ConflictStrategy = 'suffix' | 'skip'
+
+export interface Hashes {
+  crc32: string | null
+  md5: string | null
+  sha1: string | null
+}
+
+export type PlatformOverride = PlatformName | 'auto'
+
+export interface Config {
+  recursive: boolean
+  nameTemplate: string
+  conflictStrategy: ConflictStrategy
+  platformOverride: PlatformOverride
+  datPaths: {
+    noIntro: string
+    redump: string
+  }
+  api: {
+    screenScraperUser: string
+    screenScraperPassword: string
+    igdbClientId: string
+    igdbToken: string
+  }
+}
+
+export interface RomItem {
+  id: string
+  originalPath: string
+  originalName: string
+  platform: PlatformName | null
+  hashes: Hashes
+  suggestedName: string | null
+  coverUrl: string | null
+  confidence: Confidence
+  source: MatchSource
+  status: RomStatus
+  error: string | null
+}
+
+export interface ScanProgress {
+  current: number
+  total: number
+  title: string
+  detail: string
+}
+
+export interface ScanFolderRequest {
+  folderPath: string
+  config: Config
+}
+
+export interface RenameConflict {
+  id: string
+  originalName: string
+  requestedName: string
+  resolvedName: string | null
+  reason: 'exists' | 'duplicate'
+}
+
+export interface RenameSkip {
+  id: string
+  originalName: string
+  reason: string
+}
+
+export interface RenamePlanItem {
+  id: string
+  originalName: string
+  targetName: string
+  operationCount: number
+}
+
+export interface RenameSummary {
+  totalItems: number
+  totalOperations: number
+  conflicts: RenameConflict[]
+  skipped: RenameSkip[]
+  items: RenamePlanItem[]
+}
+
+export interface RenameResult {
+  summary: RenameSummary
+  updatedItems: RomItem[]
+  errors: RenameSkip[]
+}
+
+export interface UndoResult {
+  updatedItems: RomItem[]
+  errors: RenameSkip[]
+}
+
+export const DEFAULT_CONFIG: Config = {
+  recursive: true,
+  nameTemplate: '{Nome}.{ext}',
+  conflictStrategy: 'suffix',
+  platformOverride: 'auto',
+  datPaths: {
+    noIntro: '',
+    redump: '',
+  },
+  api: {
+    screenScraperUser: '',
+    screenScraperPassword: '',
+    igdbClientId: '',
+    igdbToken: '',
+  },
+}
+
+export function normalizeConfig(value: unknown): Config {
+  if (!isRecord(value)) return DEFAULT_CONFIG
+
+  const datPaths = isRecord(value.datPaths) ? value.datPaths : {}
+  const api = isRecord(value.api) ? value.api : {}
+  const conflictStrategy =
+    value.conflictStrategy === 'skip' || value.conflictStrategy === 'suffix'
+      ? value.conflictStrategy
+      : DEFAULT_CONFIG.conflictStrategy
+
+  return {
+    recursive:
+      typeof value.recursive === 'boolean'
+        ? value.recursive
+        : DEFAULT_CONFIG.recursive,
+    nameTemplate:
+      typeof value.nameTemplate === 'string' && value.nameTemplate.trim()
+        ? value.nameTemplate
+        : DEFAULT_CONFIG.nameTemplate,
+    conflictStrategy,
+    platformOverride: isValidPlatformOverride(value.platformOverride)
+      ? value.platformOverride
+      : DEFAULT_CONFIG.platformOverride,
+    datPaths: {
+      noIntro:
+        typeof datPaths.noIntro === 'string'
+          ? datPaths.noIntro
+          : DEFAULT_CONFIG.datPaths.noIntro,
+      redump:
+        typeof datPaths.redump === 'string'
+          ? datPaths.redump
+          : DEFAULT_CONFIG.datPaths.redump,
+    },
+    api: {
+      screenScraperUser:
+        typeof api.screenScraperUser === 'string'
+          ? api.screenScraperUser
+          : DEFAULT_CONFIG.api.screenScraperUser,
+      screenScraperPassword:
+        typeof api.screenScraperPassword === 'string'
+          ? api.screenScraperPassword
+          : DEFAULT_CONFIG.api.screenScraperPassword,
+      igdbClientId:
+        typeof api.igdbClientId === 'string'
+          ? api.igdbClientId
+          : DEFAULT_CONFIG.api.igdbClientId,
+      igdbToken:
+        typeof api.igdbToken === 'string'
+          ? api.igdbToken
+          : DEFAULT_CONFIG.api.igdbToken,
+    },
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+const ALL_PLATFORM_NAMES: ReadonlyArray<PlatformName> = [
+  'NES', 'SNES', 'Nintendo 64', 'Game Boy', 'Game Boy Color', 'Game Boy Advance',
+  'Nintendo DS', 'Nintendo 3DS', 'GameCube', 'Wii', 'Wii U',
+  'Master System', 'Game Gear', 'Mega Drive', 'Sega 32X', 'Mega CD', 'Sega Saturn', 'Dreamcast',
+  'PlayStation 1', 'PlayStation 2', 'PlayStation 3', 'PlayStation Portable',
+  'Atari 2600', 'Atari 7800', 'Atari Jaguar',
+  'Neo Geo', 'Neo Geo Pocket',
+  'PC Engine', 'WonderSwan',
+]
+
+export const PLATFORM_NAMES: ReadonlyArray<PlatformName> = ALL_PLATFORM_NAMES
+
+function isValidPlatformOverride(value: unknown): value is PlatformOverride {
+  return value === 'auto' || (typeof value === 'string' && (ALL_PLATFORM_NAMES as readonly string[]).includes(value))
+}

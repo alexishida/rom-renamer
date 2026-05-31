@@ -1,0 +1,40 @@
+{
+  "name": "rom-renamer",
+  "version": "0.1.0",
+  "description": "Desktop app para identificar, validar e renomear arquivos de ROM.",
+  "main": "./out/main/index.js",
+  "author": "rom-renamer",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node scripts/electron-vite.mjs dev",
+    "build": "npm run typecheck && node scripts/electron-vite.mjs build",
+    "preview": "node scripts/electron-vite.mjs preview",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
+    "build:win": "npm run build && electron-builder --win",
+    "build:mac": "npm run build && electron-builder --mac",
+    "build:linux": "npm run build && electron-builder --linux"
+  },
+  "dependencies": {
+    "lucide-react": "^1.17.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.15.40",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^41.7.1",
+    "electron-builder": "^26.8.1",
+    "electron-vite": "^5.0.0",
+    "typescript": "^6.0.3",
+    "vite": "^7.3.3"
+  }
+}
