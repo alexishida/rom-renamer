@@ -7,9 +7,9 @@ App desktop para identificar, validar e renomear arquivos de ROM de forma organi
 - **React** — interface
 - **Electron** — empacotamento desktop + acesso ao sistema de arquivos
 - **Zustand** — gerenciamento de estado
-- **Node.js** (processo main do Electron) — hashing, leitura de arquivos, chamadas de API, rename
+- **Node.js** (processo main do Electron) — hashing, leitura de arquivos, consulta SQLite, rename
 
-> Regra de arquitetura: toda operação de I/O (ler pasta, calcular hash, renomear, baixar capa) roda no **processo main** do Electron e é exposta ao renderer via **IPC** (`ipcMain`/`ipcRenderer` + `contextBridge`). O React nunca toca o filesystem diretamente.
+> Regra de arquitetura: toda operação de I/O (ler pasta, calcular hash, consultar SQLite, renomear) roda no **processo main** do Electron e é exposta ao renderer via **IPC** (`ipcMain`/`ipcRenderer` + `contextBridge`). O React nunca toca o filesystem diretamente.
 
 ## Fluxo do usuário
 
@@ -26,7 +26,7 @@ App desktop para identificar, validar e renomear arquivos de ROM de forma organi
 
 ## Pipeline de identificação
 
-Para cada arquivo, executar em ordem até obter um match com confiança suficiente:
+Para cada arquivo, executar em ordem:
 
 ### Passo 1 — Detecção de plataforma
 Detectar pela extensão (e pasta, como dica secundária):
@@ -46,32 +46,20 @@ Detectar pela extensão (e pasta, como dica secundária):
 Calcular **CRC32, MD5 e SHA-1** do arquivo. Para mídia óptica, considerar serial/ID interno do disco em vez de hash da imagem inteira (formatos variam).
 
 ### Passo 3 — Lookup no catalogo SQLite local (offline, alta confiança)
-Comparar o hash com o catalogo SQLite consolidado a partir de bancos de dados de referência:
-- **No-Intro** — cartuchos (SNES, Mega Drive, N64)
-- **Redump** — mídia óptica (PS1, PS2, GameCube)
+Comparar o hash com `resources/rom-catalog.sqlite`, catalogo consolidado gerado previamente a partir de DATs confiaveis.
 
 Match exato de hash → confiança **ALTA**, nome canônico.
 
-### Passo 4 — API de metadados (online)
-Se não houver catalogo SQLite local ou não bater:
-- **ScreenScraper.fr** — busca por hash (CRC/MD5/SHA-1) **e** por nome; retorna nome oficial + capa.
-- **IGDB** / **TheGamesDB** — fallback por nome.
-
-Implementação atual: processo main tenta ScreenScraper primeiro quando há credenciais completas do usuário e do app (`SCREEN_SCRAPER_DEV_ID` e `SCREEN_SCRAPER_DEV_PASSWORD` no ambiente). Se não houver resposta, tenta IGDB por nome.
-
-### Passo 5 — Fallback por nome (fuzzy match)
-Quando nada bate por hash:
-1. Limpar o nome do arquivo com regex (remover `(USA)`, `[!]`, `[h1]`, `(En,Fr,De)`, tags de scene, underscores, números soltos).
-2. Aplicar fuzzy match (RapidFuzz/Levenshtein) contra a lista de nomes da plataforma.
-3. Confiança proporcional ao score do match.
+### Passo 4 — Sem match
+Quando nada bate por hash, manter o item como pendente e sem sugestao automatica. Usuario pode editar manualmente antes de validar.
 
 ## Níveis de confiança
 
 | Nível   | Origem                          | Cor sugerida |
 |---------|---------------------------------|--------------|
-| ALTA    | Match exato de hash (DAT/API)   | verde        |
-| MÉDIA   | Match por API via nome          | amarelo      |
-| BAIXA   | Fuzzy match / heurística        | laranja      |
+| ALTA    | Match exato de hash no SQLite   | verde        |
+| MÉDIA   | Reservado                       | amarelo      |
+| BAIXA   | Reservado                       | laranja      |
 | NENHUMA | Não identificado                | vermelho     |
 
 Itens com confiança **BAIXA** ou **NENHUMA** nunca devem ser renomeados em lote sem validação explícita.
@@ -110,7 +98,7 @@ RomItem = {
   suggestedName: string | null,
   coverUrl: string | null,
   confidence: 'high' | 'medium' | 'low' | 'none',
-  source: 'no-intro' | 'redump' | 'screenscraper' | 'igdb' | 'fuzzy' | null,
+  source: 'no-intro' | 'redump' | null,
   status: 'pending' | 'identifying' | 'identified' | 'validated' | 'ignored' | 'renamed' | 'error',
   error: string | null,
 }
@@ -128,7 +116,7 @@ RomItem = {
   - ações por linha: validar / editar / ignorar / renomear
   - checkbox para seleção em lote
 - **ConfirmDialog** — resumo antes de aplicar rename (total, conflitos).
-- **ConfigPanel** — template de nome, recursividade, credenciais de API, caminho dos DATs que alimentam o catalogo SQLite.
+- **ConfigPanel** — template de nome, recursividade, conflitos, plataforma padrao e status do catalogo SQLite.
 
 ## Renomeação
 
@@ -144,13 +132,10 @@ RomItem = {
 
 - Nunca renomear sem validação para confiança baixa/nenhuma.
 - Operações de filesystem isoladas no main process (`contextIsolation: true`, `nodeIntegration: false`).
-- Rate limit / cache nas chamadas de API.
 - Tratar erros por item sem travar o lote inteiro.
 
 ## Roadmap sugerido
 
 1. **MVP**: escolher pasta → listar → detecção de plataforma + hash → tabela → rename manual 1 a 1.
 2. Integrar catalogo SQLite local gerado de DATs (No-Intro/Redump) por hash.
-3. Integrar ScreenScraper (nome + capa).
-4. Fuzzy match de fallback.
-5. Undo de lote, download de capas, templates avançados.
+3. Undo de lote, templates avançados e melhorias de catalogo SQLite.

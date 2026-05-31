@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import type { JSX } from 'react'
-import { ChevronDown, Database, FolderSearch, Globe2, Settings, SlidersHorizontal, X } from 'lucide-react'
+import { Database, Settings, SlidersHorizontal, X } from 'lucide-react'
 import type { Config, PlatformOverride } from '@shared/types'
 import { PLATFORM_NAMES } from '@shared/types'
 import { useRomStore } from '@renderer/stores/useRomStore'
@@ -24,11 +24,6 @@ export function ConfigPanel(): JSX.Element {
     void updateConfig({ ...config, ...partial })
   }
 
-  const browseInto = async (apply: (path: string) => void): Promise<void> => {
-    const path = await window.api.chooseFolder()
-    if (path) apply(path)
-  }
-
   return (
     <>
       <div
@@ -38,13 +33,13 @@ export function ConfigPanel(): JSX.Element {
       />
       <aside
         className={`drawer ${configOpen ? 'is-open' : ''}`}
-        aria-label="Configurações"
+        aria-label="Configuracoes"
         aria-hidden={!configOpen}
       >
         <header className="drawer__header">
           <h2 className="drawer__title">
             <Settings size={18} aria-hidden="true" />
-            Configurações
+            Configuracoes
           </h2>
           <button
             className="icon-btn icon-btn--sm icon-btn--ghost drawer__close"
@@ -66,7 +61,7 @@ export function ConfigPanel(): JSX.Element {
               <label className="switch">
                 <span className="switch__text">
                   <b>Busca recursiva</b>
-                  <span>Varrer também as subpastas</span>
+                  <span>Varrer tambem as subpastas</span>
                 </span>
                 <input
                   type="checkbox"
@@ -86,14 +81,14 @@ export function ConfigPanel(): JSX.Element {
               </label>
 
               <label className="field">
-                <span className="field__label">Plataforma padrão</span>
+                <span className="field__label">Plataforma padrao</span>
                 <select
                   value={config.platformOverride}
                   onChange={(event) => patch({ platformOverride: event.target.value as PlatformOverride })}
                 >
                   <option value="auto">Autodetectar</option>
-                  {PLATFORM_NAMES.map((p) => (
-                    <option key={p} value={p}>{p}</option>
+                  {PLATFORM_NAMES.map((platform) => (
+                    <option key={platform} value={platform}>{platform}</option>
                   ))}
                 </select>
               </label>
@@ -113,94 +108,17 @@ export function ConfigPanel(): JSX.Element {
             </div>
           </section>
 
-          <details className="group" open>
-            <summary>
+          <section className="group">
+            <div className="group__head">
               <Database size={16} className="group__icon" aria-hidden="true" />
-              Catalogo local (SQLite)
-              <ChevronDown size={16} className="group__chevron" aria-hidden="true" />
-            </summary>
-            <p className="group__hint">DATs confiaveis alimentam o catalogo SQLite usado no lookup offline.</p>
-            <div className="group__content">
-              <label className="field">
-                <span className="field__label">No-Intro (cartuchos)</span>
-                <div className="field-row">
-                  <input
-                    value={config.datPaths.noIntro}
-                    onChange={(event) => patch({ datPaths: { ...config.datPaths, noIntro: event.target.value } })}
-                    placeholder="Arquivo ou pasta com DATs"
-                  />
-                  <button
-                    className="icon-btn"
-                    type="button"
-                    onClick={() => browseInto((path) => patch({ datPaths: { ...config.datPaths, noIntro: path } }))}
-                    title="Procurar pasta"
-                  >
-                    <FolderSearch size={16} aria-hidden="true" />
-                  </button>
-                </div>
-              </label>
-
-              <label className="field">
-                <span className="field__label">Redump (mídia óptica)</span>
-                <div className="field-row">
-                  <input
-                    value={config.datPaths.redump}
-                    onChange={(event) => patch({ datPaths: { ...config.datPaths, redump: event.target.value } })}
-                    placeholder="Arquivo ou pasta com DATs"
-                  />
-                  <button
-                    className="icon-btn"
-                    type="button"
-                    onClick={() => browseInto((path) => patch({ datPaths: { ...config.datPaths, redump: path } }))}
-                    title="Procurar pasta"
-                  >
-                    <FolderSearch size={16} aria-hidden="true" />
-                  </button>
-                </div>
-              </label>
+              Catalogo SQLite
             </div>
-          </details>
-
-          <details className="group">
-            <summary>
-              <Globe2 size={16} className="group__icon" aria-hidden="true" />
-              APIs de metadados
-              <ChevronDown size={16} className="group__chevron" aria-hidden="true" />
-            </summary>
-            <p className="group__hint">Usadas como fallback online quando o hash não bate.</p>
             <div className="group__content">
-              <label className="field">
-                <span className="field__label">ScreenScraper — usuário</span>
-                <input
-                  value={config.api.screenScraperUser}
-                  onChange={(event) => patch({ api: { ...config.api, screenScraperUser: event.target.value } })}
-                />
-              </label>
-              <label className="field">
-                <span className="field__label">ScreenScraper — senha</span>
-                <input
-                  type="password"
-                  value={config.api.screenScraperPassword}
-                  onChange={(event) => patch({ api: { ...config.api, screenScraperPassword: event.target.value } })}
-                />
-              </label>
-              <label className="field">
-                <span className="field__label">IGDB — client ID</span>
-                <input
-                  value={config.api.igdbClientId}
-                  onChange={(event) => patch({ api: { ...config.api, igdbClientId: event.target.value } })}
-                />
-              </label>
-              <label className="field">
-                <span className="field__label">IGDB — token</span>
-                <input
-                  type="password"
-                  value={config.api.igdbToken}
-                  onChange={(event) => patch({ api: { ...config.api, igdbToken: event.target.value } })}
-                />
-              </label>
+              <p className="group__hint">
+                Identificacao offline usa somente <code>resources/rom-catalog.sqlite</code>.
+              </p>
             </div>
-          </details>
+          </section>
         </div>
       </aside>
     </>

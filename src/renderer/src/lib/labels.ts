@@ -38,12 +38,6 @@ export function sourceLabel(source: MatchSource): string {
       return 'No-Intro'
     case 'redump':
       return 'Redump'
-    case 'screenscraper':
-      return 'ScreenScraper'
-    case 'igdb':
-      return 'IGDB'
-    case 'fuzzy':
-      return 'Fuzzy match'
     case null:
       return 'Sem origem'
   }

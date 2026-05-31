@@ -42,9 +42,6 @@ export type Confidence = 'high' | 'medium' | 'low' | 'none'
 export type MatchSource =
   | 'no-intro'
   | 'redump'
-  | 'screenscraper'
-  | 'igdb'
-  | 'fuzzy'
   | null
 
 export type RomStatus =
@@ -71,16 +68,6 @@ export interface Config {
   nameTemplate: string
   conflictStrategy: ConflictStrategy
   platformOverride: PlatformOverride
-  datPaths: {
-    noIntro: string
-    redump: string
-  }
-  api: {
-    screenScraperUser: string
-    screenScraperPassword: string
-    igdbClientId: string
-    igdbToken: string
-  }
 }
 
 export interface RomItem {
@@ -154,23 +141,11 @@ export const DEFAULT_CONFIG: Config = {
   nameTemplate: '{Nome}.{ext}',
   conflictStrategy: 'suffix',
   platformOverride: 'auto',
-  datPaths: {
-    noIntro: '',
-    redump: '',
-  },
-  api: {
-    screenScraperUser: '',
-    screenScraperPassword: '',
-    igdbClientId: '',
-    igdbToken: '',
-  },
 }
 
 export function normalizeConfig(value: unknown): Config {
   if (!isRecord(value)) return DEFAULT_CONFIG
 
-  const datPaths = isRecord(value.datPaths) ? value.datPaths : {}
-  const api = isRecord(value.api) ? value.api : {}
   const conflictStrategy =
     value.conflictStrategy === 'skip' || value.conflictStrategy === 'suffix'
       ? value.conflictStrategy
@@ -189,34 +164,6 @@ export function normalizeConfig(value: unknown): Config {
     platformOverride: isValidPlatformOverride(value.platformOverride)
       ? value.platformOverride
       : DEFAULT_CONFIG.platformOverride,
-    datPaths: {
-      noIntro:
-        typeof datPaths.noIntro === 'string'
-          ? datPaths.noIntro
-          : DEFAULT_CONFIG.datPaths.noIntro,
-      redump:
-        typeof datPaths.redump === 'string'
-          ? datPaths.redump
-          : DEFAULT_CONFIG.datPaths.redump,
-    },
-    api: {
-      screenScraperUser:
-        typeof api.screenScraperUser === 'string'
-          ? api.screenScraperUser
-          : DEFAULT_CONFIG.api.screenScraperUser,
-      screenScraperPassword:
-        typeof api.screenScraperPassword === 'string'
-          ? api.screenScraperPassword
-          : DEFAULT_CONFIG.api.screenScraperPassword,
-      igdbClientId:
-        typeof api.igdbClientId === 'string'
-          ? api.igdbClientId
-          : DEFAULT_CONFIG.api.igdbClientId,
-      igdbToken:
-        typeof api.igdbToken === 'string'
-          ? api.igdbToken
-          : DEFAULT_CONFIG.api.igdbToken,
-    },
   }
 }
 

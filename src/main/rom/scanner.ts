@@ -5,9 +5,8 @@ import type { Config, RomItem, ScanProgress } from '@shared/types'
 import { calculateHashes } from './hash'
 import { closeDatIndex, createDatIndex, findDatMatch, type DatIndex } from './dat'
 import { readCueReferences } from './cue'
-import { describeApiFallback, findApiMatch, hasConfiguredApiFallback } from './metadata'
 import { detectPlatform, isSupportedRomPath } from './platform'
-import { preserveNameMetadata, suggestNameFromPath } from './naming'
+import { preserveNameMetadata } from './naming'
 
 export async function scanFolder(
   folderPath: string,
@@ -30,18 +29,15 @@ export async function scanFolder(
   const files = await walkFiles(root, config.recursive)
   const cueSidecars = await collectCueSidecars(files)
   const romFiles = files.filter((filePath) => shouldIncludeRom(filePath, cueSidecars))
-  const datSources = listDatSources(config)
 
   reportProgress(onProgress, {
     current: 22,
     total: 100,
     title: 'Montando catalogo...',
-    detail: datSources.length
-      ? `Atualizando catalogo SQLite com ${datSources.join(' e ')}.`
-      : describeIdentificationPlan(config),
+    detail: 'Abrindo catalogo SQLite local para comparar hashes.',
   })
 
-  const datIndex = await createDatIndex(config)
+  const datIndex = await createDatIndex()
   const items: RomItem[] = []
 
   try {
@@ -152,35 +148,10 @@ async function buildRomItem(
       }
     }
 
-    const apiMatch = await findApiMatch({
-      filePath,
-      originalName,
-      platform: resolvedPlatform,
-      hashes,
-      config,
-    })
-
-    if (apiMatch) {
-      return {
-        ...baseItem,
-        hashes,
-        suggestedName: apiMatch.name,
-        coverUrl: apiMatch.coverUrl,
-        confidence: 'medium',
-        source: apiMatch.source,
-        status: 'identified',
-      }
-    }
-
-    const suggestedName = suggestNameFromPath(filePath)
-
     return {
       ...baseItem,
       hashes,
-      suggestedName,
-      confidence: suggestedName ? 'low' : 'none',
-      source: suggestedName ? 'fuzzy' : null,
-      status: suggestedName ? 'identified' : 'pending',
+      status: 'pending',
     }
   } catch (error) {
     return {
@@ -210,24 +181,6 @@ function reportProgress(
     current: Math.max(0, Math.min(progress.current, progress.total)),
     total: Math.max(progress.total, 1),
   })
-}
-
-function listDatSources(config: Config): string[] {
-  const sources: string[] = []
-  if (config.datPaths.noIntro.trim()) sources.push('No-Intro')
-  if (config.datPaths.redump.trim()) sources.push('Redump')
-  return sources
-}
-
-function describeIdentificationPlan(config: Config): string {
-  if (hasConfiguredApiFallback(config)) {
-    const providers = describeApiFallback(config)
-    return providers
-      ? `Usando catalogo SQLite local quando existir; fallback por API (${providers}) e depois por nome.`
-      : 'Usando catalogo SQLite local quando existir; fallback por API e depois por nome.'
-  }
-
-  return 'Usando catalogo SQLite local quando existir; depois fallback por nome.'
 }
 
 function describeRomProgress(current: number, total: number, fileName: string): string {

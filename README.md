@@ -18,11 +18,9 @@ Para cada arquivo, tenta em ordem até obter um match com confiança suficiente:
 |-------|--------|-----------|
 | 1 | Detecção de plataforma pela extensão | — |
 | 2 | Hash do conteúdo (CRC32/MD5/SHA-1) | — |
-| 3 | Lookup no catalogo SQLite local (gerado de DATs No-Intro/Redump) | **Alta** |
-| 4 | APIs online (ScreenScraper, IGDB) | Média |
-| 5 | Fuzzy match por nome | Baixa |
+| 3 | Lookup no catalogo SQLite local | **Alta** |
 
-Itens com confiança **Baixa** ou **Nenhuma** nunca são renomeados em lote sem validação explícita.
+Quando o hash nao existe no SQLite, o item fica pendente para validacao/edicao manual.
 
 ## Catalogo SQLite
 
@@ -38,7 +36,7 @@ Por padrao o comando importa tudo em `temp/`. Para usar outra pasta ou arquivo:
 npm run catalog:build -- --input caminho/dos/dats
 ```
 
-Durante o uso, DATs configurados no painel tambem sao sincronizados para o catalogo SQLite do usuario antes do lookup por hash. A identificacao em si consulta o SQLite.
+Durante o uso, o app consulta somente o SQLite local. DATs e APIs nao sao consultados pelo fluxo de identificacao.
 
 ## Plataformas suportadas
 
@@ -184,10 +182,7 @@ Abra o painel de **Configurações** (ícone de engrenagem) para:
 - **Busca recursiva** — varrer subpastas
 - **Template de nome** — ex.: `{Nome}.{ext}`, `{Nome} ({Região}).{ext}`
 - **Conflitos** — sufixar ou pular quando o nome já existe
-- **DATs locais** — caminho para arquivos No-Intro e Redump usados para alimentar o catalogo SQLite offline
-- **APIs** — credenciais ScreenScraper e IGDB (identificação online)
-
-Para usar ScreenScraper no processo main, além do usuário e senha no app, defina também `SCREEN_SCRAPER_DEV_ID` e `SCREEN_SCRAPER_DEV_PASSWORD` no ambiente. Sem isso, o fallback online usa IGDB quando configurado.
+- **Catalogo SQLite** — consulta offline em `resources/rom-catalog.sqlite`
 
 ## Licença
 
