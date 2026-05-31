@@ -116,10 +116,10 @@ export function ConfigPanel(): JSX.Element {
           <details className="group" open>
             <summary>
               <Database size={16} className="group__icon" aria-hidden="true" />
-              Bancos de dados (DATs)
+              Catalogo local (SQLite)
               <ChevronDown size={16} className="group__chevron" aria-hidden="true" />
             </summary>
-            <p className="group__hint">Identificação offline por hash com alta confiança.</p>
+            <p className="group__hint">DATs confiaveis alimentam o catalogo SQLite usado no lookup offline.</p>
             <div className="group__content">
               <label className="field">
                 <span className="field__label">No-Intro (cartuchos)</span>
@@ -127,7 +127,7 @@ export function ConfigPanel(): JSX.Element {
                   <input
                     value={config.datPaths.noIntro}
                     onChange={(event) => patch({ datPaths: { ...config.datPaths, noIntro: event.target.value } })}
-                    placeholder="Arquivo ou pasta"
+                    placeholder="Arquivo ou pasta com DATs"
                   />
                   <button
                     className="icon-btn"
@@ -146,7 +146,7 @@ export function ConfigPanel(): JSX.Element {
                   <input
                     value={config.datPaths.redump}
                     onChange={(event) => patch({ datPaths: { ...config.datPaths, redump: event.target.value } })}
-                    placeholder="Arquivo ou pasta"
+                    placeholder="Arquivo ou pasta com DATs"
                   />
                   <button
                     className="icon-btn"

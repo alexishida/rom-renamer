@@ -3,7 +3,7 @@ import { readdir, stat } from 'node:fs/promises'
 import { basename, extname, join, resolve } from 'node:path'
 import type { Config, RomItem, ScanProgress } from '@shared/types'
 import { calculateHashes } from './hash'
-import { createDatIndex, findDatMatch } from './dat'
+import { closeDatIndex, createDatIndex, findDatMatch, type DatIndex } from './dat'
 import { readCueReferences } from './cue'
 import { describeApiFallback, findApiMatch, hasConfiguredApiFallback } from './metadata'
 import { detectPlatform, isSupportedRomPath } from './platform'
@@ -37,34 +37,38 @@ export async function scanFolder(
     total: 100,
     title: 'Montando catalogo...',
     detail: datSources.length
-      ? `Carregando ${datSources.join(' e ')} para comparar hashes.`
+      ? `Atualizando catalogo SQLite com ${datSources.join(' e ')}.`
       : describeIdentificationPlan(config),
   })
 
   const datIndex = await createDatIndex(config)
   const items: RomItem[] = []
 
-  reportProgress(onProgress, {
-    current: romFiles.length ? 30 : 100,
-    total: 100,
-    title: romFiles.length ? 'Identificando ROMs...' : 'Leitura concluida',
-    detail: romFiles.length
-      ? `Processando ${romFiles.length} arquivo(s) de ROM.`
-      : 'Nenhum arquivo de ROM reconhecido na pasta selecionada.',
-  })
-
-  for (const [index, filePath] of romFiles.entries()) {
-    items.push(await buildRomItem(filePath, datIndex, config))
-
+  try {
     reportProgress(onProgress, {
-      current: 30 + Math.round(((index + 1) / romFiles.length) * 70),
+      current: romFiles.length ? 30 : 100,
       total: 100,
-      title: index + 1 === romFiles.length ? 'Finalizando leitura...' : 'Identificando ROMs...',
-      detail: describeRomProgress(index + 1, romFiles.length, basename(filePath)),
+      title: romFiles.length ? 'Identificando ROMs...' : 'Leitura concluida',
+      detail: romFiles.length
+        ? `Processando ${romFiles.length} arquivo(s) de ROM com ${datIndex.entries} registro(s) no catalogo.`
+        : 'Nenhum arquivo de ROM reconhecido na pasta selecionada.',
     })
-  }
 
-  return items.sort((left, right) => left.originalName.localeCompare(right.originalName))
+    for (const [index, filePath] of romFiles.entries()) {
+      items.push(await buildRomItem(filePath, datIndex, config))
+
+      reportProgress(onProgress, {
+        current: 30 + Math.round(((index + 1) / romFiles.length) * 70),
+        total: 100,
+        title: index + 1 === romFiles.length ? 'Finalizando leitura...' : 'Identificando ROMs...',
+        detail: describeRomProgress(index + 1, romFiles.length, basename(filePath)),
+      })
+    }
+
+    return items.sort((left, right) => left.originalName.localeCompare(right.originalName))
+  } finally {
+    closeDatIndex(datIndex)
+  }
 }
 
 async function walkFiles(root: string, recursive: boolean): Promise<string[]> {
@@ -110,7 +114,7 @@ function shouldIncludeRom(filePath: string, cueSidecars: Set<string>): boolean {
 
 async function buildRomItem(
   filePath: string,
-  datIndex: Awaited<ReturnType<typeof createDatIndex>>,
+  datIndex: DatIndex,
   config: Config,
 ): Promise<RomItem> {
   const originalName = basename(filePath)
@@ -219,11 +223,11 @@ function describeIdentificationPlan(config: Config): string {
   if (hasConfiguredApiFallback(config)) {
     const providers = describeApiFallback(config)
     return providers
-      ? `Sem DAT configurado. Preparando fallback por API (${providers}) e depois por nome.`
-      : 'Sem DAT configurado. Preparando fallback por API e depois por nome.'
+      ? `Usando catalogo SQLite local quando existir; fallback por API (${providers}) e depois por nome.`
+      : 'Usando catalogo SQLite local quando existir; fallback por API e depois por nome.'
   }
 
-  return 'Sem DAT configurado. Preparando fallback por nome.'
+  return 'Usando catalogo SQLite local quando existir; depois fallback por nome.'
 }
 
 function describeRomProgress(current: number, total: number, fileName: string): string {

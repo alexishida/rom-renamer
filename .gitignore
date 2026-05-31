@@ -6,6 +6,9 @@ release
 .env.*
 !.env.example
 *.log
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

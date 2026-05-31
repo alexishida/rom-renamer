@@ -45,15 +45,15 @@ Detectar pela extensão (e pasta, como dica secundária):
 ### Passo 2 — Hash do conteúdo (técnica principal)
 Calcular **CRC32, MD5 e SHA-1** do arquivo. Para mídia óptica, considerar serial/ID interno do disco em vez de hash da imagem inteira (formatos variam).
 
-### Passo 3 — Lookup em DAT files (offline, alta confiança)
-Comparar o hash com bancos de dados de referência:
+### Passo 3 — Lookup no catalogo SQLite local (offline, alta confiança)
+Comparar o hash com o catalogo SQLite consolidado a partir de bancos de dados de referência:
 - **No-Intro** — cartuchos (SNES, Mega Drive, N64)
 - **Redump** — mídia óptica (PS1, PS2, GameCube)
 
 Match exato de hash → confiança **ALTA**, nome canônico.
 
 ### Passo 4 — API de metadados (online)
-Se não houver DAT local ou não bater:
+Se não houver catalogo SQLite local ou não bater:
 - **ScreenScraper.fr** — busca por hash (CRC/MD5/SHA-1) **e** por nome; retorna nome oficial + capa.
 - **IGDB** / **TheGamesDB** — fallback por nome.
 
@@ -128,7 +128,7 @@ RomItem = {
   - ações por linha: validar / editar / ignorar / renomear
   - checkbox para seleção em lote
 - **ConfirmDialog** — resumo antes de aplicar rename (total, conflitos).
-- **ConfigPanel** — template de nome, recursividade, credenciais de API, caminho dos DATs.
+- **ConfigPanel** — template de nome, recursividade, credenciais de API, caminho dos DATs que alimentam o catalogo SQLite.
 
 ## Renomeação
 
@@ -150,7 +150,7 @@ RomItem = {
 ## Roadmap sugerido
 
 1. **MVP**: escolher pasta → listar → detecção de plataforma + hash → tabela → rename manual 1 a 1.
-2. Integrar DAT local (No-Intro) por hash.
+2. Integrar catalogo SQLite local gerado de DATs (No-Intro/Redump) por hash.
 3. Integrar ScreenScraper (nome + capa).
 4. Fuzzy match de fallback.
 5. Undo de lote, download de capas, templates avançados.

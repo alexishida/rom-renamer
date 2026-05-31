@@ -9,6 +9,14 @@ const VERSION_TAG_PATTERN = /^v?\d+(?:\.\d+)+$/i
 const REGION_TAG_PATTERN = /^(BR|B|BRAZIL|EUA|USA|UNITED STATES|U|E|EUROPE|JAPAN|J)$/i
 const LANGUAGE_TAG_PATTERN = /^M\d+$/i
 const REGION_DISPLAY_MAP: Record<string, string> = {
+  U: 'EUA',
+  USA: 'EUA',
+  'UNITED STATES': 'EUA',
+  E: 'Europa',
+  EUROPE: 'Europa',
+  BR: 'Brasil',
+  B: 'Brasil',
+  BRAZIL: 'Brasil',
   J: 'Japan',
   JAPAN: 'Japan',
 }
@@ -58,7 +66,7 @@ export function toCatalogTitle(value: string): string {
 
 export function preserveNameMetadata(name: string, sourceValue: string): string {
   const trimmedName = name.replace(/\s{2,}/g, ' ').trim()
-  const sourceTags = extractPreservedTags(stemValue(sourceValue))
+  const sourceTags = extractPreservedTags(sourceValue)
   if (sourceTags.length === 0) return trimmedName
 
   const targetTags = extractPreservedTags(trimmedName)
@@ -73,11 +81,7 @@ function toDisplayTitle(value: string): string {
   return value
     .split(' ')
     .filter(Boolean)
-    .map((part) => {
-      if (part.length <= 3 && part === part.toUpperCase()) return part
-      if (/^\d+$/.test(part)) return part
-      return `${part.slice(0, 1).toUpperCase()}${part.slice(1).toLowerCase()}`
-    })
+    .map(formatDisplayPart)
     .join(' ')
 }
 
@@ -86,7 +90,7 @@ function extractPreservedTags(value: string): PreservedTag[] {
   const preserved = new Map<string, PreservedTag>()
 
   for (const rawTag of tags) {
-    const normalized = rawTag.replace(/^[([{]\s*|\s*[)\]}]$/g, '').trim()
+    const normalized = rawTag.replace(/^[\s([{]+|[\s)\]}]+$/g, '').trim()
     if (!normalized) continue
 
     if (VERSION_TAG_PATTERN.test(normalized)) {
@@ -104,7 +108,9 @@ function extractPreservedTags(value: string): PreservedTag[] {
     if (LANGUAGE_TAG_PATTERN.test(normalized)) {
       const value = normalized.toUpperCase()
       preserved.set(`language:${value}`, { value, kind: 'language' })
+      continue
     }
+
   }
 
   return [...preserved.values()]
@@ -112,11 +118,6 @@ function extractPreservedTags(value: string): PreservedTag[] {
 
 function formatTag(value: string): string {
   return `(${value})`
-}
-
-function stemValue(value: string): string {
-  const ext = extname(value)
-  return basename(value, ext)
 }
 
 function canonicalizeRegionTag(value: string): string {
@@ -132,4 +133,22 @@ function cleanNameForMatch(value: string): string {
     .replace(/\s+-\s+/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim()
+}
+
+function formatDisplayPart(part: string): string {
+  if (!part.includes('-')) {
+    return formatDisplaySegment(part)
+  }
+
+  return part
+    .split('-')
+    .filter((segment) => segment.length > 0)
+    .map(formatDisplaySegment)
+    .join('-')
+}
+
+function formatDisplaySegment(segment: string): string {
+  if (segment.length <= 3 && segment === segment.toUpperCase()) return segment
+  if (/^\d+$/.test(segment)) return segment
+  return `${segment.slice(0, 1).toUpperCase()}${segment.slice(1).toLowerCase()}`
 }

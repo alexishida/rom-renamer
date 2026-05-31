@@ -8,6 +8,9 @@ files:
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintrc,.prettierrc,tsconfig*.json}'
 asar: true
+extraResources:
+  - from: resources/rom-catalog.sqlite
+    to: rom-catalog.sqlite
 win:
   target: nsis
   artifactName: ${productName}-${version}-setup.${ext}

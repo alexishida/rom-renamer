@@ -6,10 +6,11 @@
   "author": "rom-renamer",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.5"
   },
   "scripts": {
     "dev": "node scripts/electron-vite.mjs dev",
+    "catalog:build": "node scripts/build-rom-catalog.mjs",
     "build": "npm run typecheck && node scripts/electron-vite.mjs build",
     "preview": "node scripts/electron-vite.mjs preview",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",

@@ -18,11 +18,27 @@ Para cada arquivo, tenta em ordem até obter um match com confiança suficiente:
 |-------|--------|-----------|
 | 1 | Detecção de plataforma pela extensão | — |
 | 2 | Hash do conteúdo (CRC32/MD5/SHA-1) | — |
-| 3 | Lookup em DAT files locais (No-Intro, Redump) | **Alta** |
+| 3 | Lookup no catalogo SQLite local (gerado de DATs No-Intro/Redump) | **Alta** |
 | 4 | APIs online (ScreenScraper, IGDB) | Média |
 | 5 | Fuzzy match por nome | Baixa |
 
 Itens com confiança **Baixa** ou **Nenhuma** nunca são renomeados em lote sem validação explícita.
+
+## Catalogo SQLite
+
+O app usa `resources/rom-catalog.sqlite` como DAT consolidado. Gere ou atualize esse arquivo a partir dos `.dat`/`.xml` confiaveis com:
+
+```bash
+npm run catalog:build
+```
+
+Por padrao o comando importa tudo em `temp/`. Para usar outra pasta ou arquivo:
+
+```bash
+npm run catalog:build -- --input caminho/dos/dats
+```
+
+Durante o uso, DATs configurados no painel tambem sao sincronizados para o catalogo SQLite do usuario antes do lookup por hash. A identificacao em si consulta o SQLite.
 
 ## Plataformas suportadas
 
@@ -137,7 +153,7 @@ Toda operação de I/O roda no processo main do Electron e é exposta ao rendere
 
 ## Pré-requisitos
 
-- Node.js 20+
+- Node.js 22.5+
 
 ## Instalação e uso em desenvolvimento
 
@@ -168,7 +184,7 @@ Abra o painel de **Configurações** (ícone de engrenagem) para:
 - **Busca recursiva** — varrer subpastas
 - **Template de nome** — ex.: `{Nome}.{ext}`, `{Nome} ({Região}).{ext}`
 - **Conflitos** — sufixar ou pular quando o nome já existe
-- **DATs locais** — caminho para arquivos No-Intro e Redump (identificação offline)
+- **DATs locais** — caminho para arquivos No-Intro e Redump usados para alimentar o catalogo SQLite offline
 - **APIs** — credenciais ScreenScraper e IGDB (identificação online)
 
 Para usar ScreenScraper no processo main, além do usuário e senha no app, defina também `SCREEN_SCRAPER_DEV_ID` e `SCREEN_SCRAPER_DEV_PASSWORD` no ambiente. Sem isso, o fallback online usa IGDB quando configurado.
