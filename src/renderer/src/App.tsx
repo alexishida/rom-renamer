@@ -5,7 +5,6 @@ import { ChooseFolderModal } from './components/ChooseFolderModal'
 import { ConfigPanel } from './components/ConfigPanel'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { DatCatalogModal } from './components/DatCatalogModal'
-import { RenameResultDialog } from './components/RenameResultDialog'
 import { RomTable } from './components/RomTable'
 import { StatsFilter } from './components/StatsFilter'
 import { Toolbar } from './components/Toolbar'
@@ -61,7 +60,6 @@ export function App(): JSX.Element {
       )}
 
       <ConfirmDialog />
-      <RenameResultDialog />
     </div>
   )
 }

@@ -163,7 +163,7 @@ function canonicalizeRegionTag(value: string): RegionName {
 
 function cleanNameForMatch(value: string): string {
   return value
-    .replace(TAG_PATTERN, ' ')
+    .replace(TAG_PATTERN, (_, tag: string) => ` ${tag.replace(/[()[\]{}]/g, '')} `)
     .replace(SEPARATORS_PATTERN, ' ')
     .replace(EXTRA_PATTERN, ' ')
     .replace(/\s+-\s+/g, ' ')

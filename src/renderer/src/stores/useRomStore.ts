@@ -3,7 +3,6 @@ import {
   DEFAULT_CONFIG,
   normalizeConfig,
   type Config,
-  type RenameSkip,
   type RenameResult,
   type RenameSummary,
   type RomItem,
@@ -14,11 +13,6 @@ import {
 
 export type StatusFilter = 'all' | 'not-renamed' | RomStatus
 
-interface RenameReport {
-  renamedItems: RomItem[]
-  errors: RenameSkip[]
-}
-
 interface RomStoreState {
   folderPath: string | null
   scanning: boolean
@@ -27,7 +21,6 @@ interface RomStoreState {
   selectedIds: string[]
   config: Config
   renameSummary: RenameSummary | null
-  renameReport: RenameReport | null
   pendingRenameIds: string[]
   notice: string | null
   error: string | null
@@ -63,8 +56,6 @@ interface RomStoreState {
   confirmRename: () => Promise<void>
   cancelRename: () => void
   undoLastRename: () => Promise<void>
-  closeRenameReport: () => void
-  showNonRenamedItems: () => void
   setConfigOpen: (open: boolean) => void
   setFolderModalOpen: (open: boolean) => void
   setCatalogModalOpen: (open: boolean) => void
@@ -82,7 +73,6 @@ export const useRomStore = create<RomStoreState>((set, get) => ({
   selectedIds: [],
   config: DEFAULT_CONFIG,
   renameSummary: null,
-  renameReport: null,
   pendingRenameIds: [],
   notice: null,
   error: null,
@@ -324,16 +314,6 @@ export const useRomStore = create<RomStoreState>((set, get) => ({
     }
   },
 
-  closeRenameReport: () => set({ renameReport: null }),
-
-  showNonRenamedItems: () => {
-    set({
-      renameReport: null,
-      statusFilter: 'not-renamed',
-      searchTerm: '',
-    })
-  },
-
   setConfigOpen: (configOpen) => set({ configOpen }),
 
   setFolderModalOpen: (folderModalOpen) => set({ folderModalOpen }),
@@ -385,9 +365,6 @@ function applyRenameResult(
     items,
     selectedIds: get().selectedIds.filter((id) => !renamedIds.has(id)),
     renameSummary: null,
-    renameReport: result.updatedItems.length > 0
-      ? { renamedItems: result.updatedItems, errors: result.errors }
-      : null,
     pendingRenameIds: [],
     statusFilter: renamedIds.size > 0 ? 'not-renamed' : get().statusFilter,
     searchTerm: renamedIds.size > 0 ? '' : get().searchTerm,
