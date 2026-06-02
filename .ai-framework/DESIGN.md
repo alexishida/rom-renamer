@@ -172,6 +172,9 @@ Tokens vivem em `src/renderer/src/styles.css`, dentro de `:root`. Sempre consumi
 - Footer alinha acoes para direita, com cancelar neutro e confirmar primario.
 - Backdrop fecha dialogs nao destrutivos; acoes destrutivas continuam pedindo confirmacao explicita quando aplicavel.
 - `.summary-grid` e `.summary-card` devem resumir impacto de rename antes de qualquer escrita em disco.
+- `.summary-card--warn` destaca contagem critica como conflitos ou falhas.
+- `.summary-card--muted` sinaliza contagem nao critica como itens pulados.
+- `.dialog-list__scroll` aplica scroll interno em listas longas dentro do corpo do dialog.
 - `.dialog-list--warn` destaca conflitos, mas nao deve ocultar lista de alteracoes.
 
 ### Toast

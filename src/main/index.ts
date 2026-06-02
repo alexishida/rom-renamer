@@ -12,7 +12,7 @@ import {
   listCatalogFiles,
   searchCatalog,
 } from './rom/dat'
-import { preserveNameMetadata } from './rom/naming'
+import { appendRegionTagIfMissing, preserveNameMetadata } from './rom/naming'
 
 const currentItems = new Map<string, RomItem>()
 let lastRenameLog: RenameLog | null = null
@@ -153,7 +153,7 @@ function registerIpcHandlers(): void {
 
     const updated: RomItem = {
       ...item,
-      suggestedName: preserveNameMetadata(result.name, item.originalName),
+      suggestedName: appendRegionTagIfMissing(preserveNameMetadata(result.name, item.originalName), item.region),
       confidence: 'high',
       source: result.source,
       status: 'identified',

@@ -26,6 +26,11 @@ The app MUST build a rename summary before applying any disk write.
 - **THEN** the app returns item count, operation count, conflicts, skipped items, and target names
 - **AND** no filesystem rename occurs during preview.
 
+#### Scenario: Confirmation dialog lists planned renames
+- **WHEN** the rename confirmation dialog is shown
+- **THEN** every planned rename is listed with original and target filename
+- **AND** the rename list is scrollable when it exceeds the visible dialog area.
+
 #### Scenario: No item can be renamed
 - **WHEN** preview contains zero planned items
 - **THEN** the confirmation action is disabled.
@@ -86,6 +91,12 @@ Rename execution MUST run in the main process, apply planned operations per item
 - **THEN** the item path and name are updated
 - **AND** status becomes `renamed`
 - **AND** the operation is recorded in the last rename log.
+
+#### Scenario: Rename batch finishes in UI
+- **WHEN** a rename batch completes with one or more successful items
+- **THEN** the renderer shows a result dialog listing every current item that is not `renamed`
+- **AND** the table filter switches to `not-renamed`
+- **AND** the current text search is cleared so the remaining records stay visible.
 
 #### Scenario: Item rename fails
 - **WHEN** an operation throws for an item

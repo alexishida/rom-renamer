@@ -24,7 +24,8 @@ The UI MUST show useful progress, empty, and no-result states while preserving t
 
 #### Scenario: Scan is running
 - **WHEN** scan progress events arrive
-- **THEN** the table area shows progress title, detail, percent, and bar.
+- **THEN** the table area shows progress title, detail, percent, and bar
+- **AND** any previous result list is cleared until the new scan finishes.
 
 #### Scenario: No ROMs are found
 - **WHEN** scan completes with zero items
@@ -55,6 +56,11 @@ The UI MUST support status filtering, text search, visible-row selection, and bu
 - **WHEN** a status chip is clicked
 - **THEN** only items with that status are visible
 - **AND** the `Todos` chip returns to all items.
+
+#### Scenario: User filters by not-renamed
+- **WHEN** the `Nao renomeados` chip is clicked
+- **THEN** every item that is not `renamed` is visible
+- **AND** the chip count reflects the live total of non-renamed items.
 
 #### Scenario: User selects all visible rows
 - **WHEN** the table header checkbox is toggled
@@ -110,10 +116,22 @@ The UI MUST gate disk renames behind a confirmation dialog and show notices or e
 - **AND** shows counts, conflicts, skipped items, and planned changes before apply.
 
 #### Scenario: Rename result returns
-- **WHEN** rename completes
+- **WHEN** rename completes with one or more successful items
 - **THEN** updated items replace table items
 - **AND** renamed ids are removed from selection
-- **AND** success notice and any error reasons are shown.
+- **AND** a result dialog opens listing every current item that is not `renamed` with its status label
+- **AND** any per-item errors are listed separately in the dialog
+- **AND** the table filter switches to `not-renamed`
+- **AND** the current text search is cleared so the remaining records stay visible.
+
+#### Scenario: User closes the rename result dialog
+- **WHEN** the user clicks the close button or backdrop of the result dialog
+- **THEN** the dialog closes and the table shows the `not-renamed` filtered view.
+
+#### Scenario: User clicks "Ver nao renomeados" in result dialog
+- **WHEN** the user clicks the primary action button in the result dialog
+- **THEN** the dialog closes
+- **AND** the table filter is set to `not-renamed` with search cleared.
 
 #### Scenario: Undo result returns
 - **WHEN** undo completes

@@ -63,6 +63,17 @@ Identification MUST query the local SQLite catalog by SHA-1, then MD5, then CRC3
 - **AND** source is `no-intro` or `redump`
 - **AND** suggested name uses the catalog game name with metadata preserved from the original filename.
 
+#### Scenario: Exact match already uses final filename
+- **WHEN** a high-confidence match renders the same final filename as the current file
+- **THEN** the item is marked `renamed`
+- **AND** no extra user rename step is needed for that item.
+
+#### Scenario: Original filename region overrides catalog region
+- **WHEN** the original filename contains a recognized region tag such as `(U)`
+- **AND** the catalog match name contains a different region tag
+- **THEN** the suggested name keeps the catalog game title
+- **AND** the region tag shown in the suggestion uses the original filename region, such as `EUA`.
+
 #### Scenario: Multiple sources match
 - **WHEN** equivalent hash rows exist across sources
 - **THEN** `no-intro` is preferred before `redump`.
@@ -78,6 +89,34 @@ Identification MUST attempt fuzzy local catalog matching by normalized filename 
 
 #### Scenario: Fuzzy match is below threshold
 - **WHEN** no hash match exists and no fuzzy row reaches the automatic threshold
+- **THEN** the item remains `pending`
+- **AND** confidence remains `none`.
+
+### Requirement: Header region fallback
+The scanner MUST read ROM header region only for supported platforms (Nintendo 64, Game Boy, Game Boy Color, Game Boy Advance, Nintendo DS) and use it as lower-authority metadata than the local catalog.
+
+#### Scenario: Catalog suggestion has no region
+- **WHEN** a hash or fuzzy catalog match produces a suggested name without a region tag
+- **AND** supported ROM header parsing finds a region
+- **THEN** the suggested name includes the detected region tag
+- **AND** the catalog source and confidence remain authoritative.
+
+#### Scenario: Catalog suggestion already has region
+- **WHEN** a hash or fuzzy catalog match produces a suggested name with a region tag
+- **AND** supported ROM header parsing finds a different region
+- **THEN** the catalog or filename-preserved region remains unchanged.
+
+#### Scenario: Only header region is available
+- **WHEN** exact hash and fuzzy catalog matching fail
+- **AND** supported ROM header parsing finds a region
+- **THEN** the item is marked `identified`
+- **AND** confidence is `low`
+- **AND** source is `header`
+- **AND** suggested name uses the cleaned filename with the detected region tag.
+
+#### Scenario: Header region is unavailable
+- **WHEN** exact hash and fuzzy catalog matching fail
+- **AND** header parsing is unsupported or finds no reliable region
 - **THEN** the item remains `pending`
 - **AND** confidence remains `none`.
 

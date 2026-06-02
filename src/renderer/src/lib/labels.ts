@@ -38,6 +38,8 @@ export function sourceLabel(source: MatchSource): string {
       return 'No-Intro'
     case 'redump':
       return 'Redump'
+    case 'header':
+      return 'Header'
     case null:
       return 'Sem origem'
   }

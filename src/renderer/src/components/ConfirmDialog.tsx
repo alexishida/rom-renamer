@@ -58,7 +58,7 @@ export function ConfirmDialog(): JSX.Element | null {
                 Conflitos de nome
               </h3>
               <ul>
-                {summary.conflicts.slice(0, 5).map((conflict, index) => (
+                {summary.conflicts.map((conflict, index) => (
                   <li key={`${conflict.id}-${index}`}>
                     <span>{conflict.requestedName}</span>
                     <strong>{conflict.resolvedName ?? conflict.reason}</strong>
@@ -71,8 +71,8 @@ export function ConfirmDialog(): JSX.Element | null {
           {summary.items.length > 0 && (
             <div className="dialog-list">
               <h3>Alterações</h3>
-              <ul>
-                {summary.items.slice(0, 8).map((item) => (
+              <ul className="dialog-list__scroll">
+                {summary.items.map((item) => (
                   <li key={item.id}>
                     <span>{item.originalName}</span>
                     <strong>

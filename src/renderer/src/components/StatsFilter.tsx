@@ -34,6 +34,7 @@ export function StatsFilter(): JSX.Element {
   const openFolderModal = useRomStore((state) => state.openFolderModal)
 
   const counts = countByStatus(items)
+  const notRenamedCount = items.length - counts.renamed
   const folderName = folderPath ? folderPath.split(/[\\/]/).filter(Boolean).pop() ?? folderPath : ''
 
   const visibleStatuses = STATUS_ORDER.filter((status) => counts[status] > 0 || statusFilter === status)
@@ -65,6 +66,7 @@ export function StatsFilter(): JSX.Element {
 
       <div className="chips" role="group" aria-label="Filtrar por status">
         {renderChip('all', 'Todos', items.length, 'chip--all')}
+        {renderChip('not-renamed', 'Nao renomeados', notRenamedCount, 'chip--identified')}
         {visibleStatuses.map((status) =>
           renderChip(status, PLURAL_LABEL[status], counts[status], `chip--${status}`),
         )}

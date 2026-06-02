@@ -6,7 +6,9 @@ import { calculateHashes } from './hash'
 import { closeDatIndex, createDatIndex, findDatMatch, findFuzzyDatMatch, type DatIndex } from './dat'
 import { readCueReferences } from './cue'
 import { detectPlatform, isSupportedRomPath } from './platform'
-import { normalizeNameForSearch, preserveNameMetadata } from './naming'
+import { appendRegionTagIfMissing, normalizeNameForSearch, preserveNameMetadata, suggestNameFromPath } from './naming'
+import { detectRegionFromHeader } from './region'
+import { renderTargetFileName } from './rename'
 
 export async function scanFolder(
   folderPath: string,
@@ -120,6 +122,7 @@ async function buildRomItem(
     originalPath: filePath,
     originalName,
     platform: resolvedPlatform,
+    region: null,
     hashes: {
       crc32: null,
       md5: null,
@@ -135,16 +138,29 @@ async function buildRomItem(
 
   try {
     const hashes = await calculateHashes(filePath)
+    const region = await safeDetectRegionFromHeader(filePath, resolvedPlatform)
     const datMatch = findDatMatch(datIndex, hashes)
 
     if (datMatch) {
-      return {
+      const suggestedName = appendRegionTagIfMissing(preserveNameMetadata(datMatch.name, originalName), region)
+      const status = isAlreadyRenamed({
         ...baseItem,
         hashes,
-        suggestedName: preserveNameMetadata(datMatch.name, originalName),
+        region,
+        suggestedName,
         confidence: 'high',
         source: datMatch.source,
         status: 'identified',
+      }, config)
+
+      return {
+        ...baseItem,
+        hashes,
+        region,
+        suggestedName,
+        confidence: 'high',
+        source: datMatch.source,
+        status,
       }
     }
 
@@ -153,9 +169,23 @@ async function buildRomItem(
       return {
         ...baseItem,
         hashes,
-        suggestedName: preserveNameMetadata(fuzzyMatch.name, originalName),
+        region,
+        suggestedName: appendRegionTagIfMissing(preserveNameMetadata(fuzzyMatch.name, originalName), region),
         confidence: 'low',
         source: fuzzyMatch.source,
+        status: 'identified',
+      }
+    }
+
+    if (region) {
+      const fallbackName = suggestNameFromPath(filePath) ?? basename(filePath, extname(filePath))
+      return {
+        ...baseItem,
+        hashes,
+        region,
+        suggestedName: appendRegionTagIfMissing(fallbackName, region),
+        confidence: 'low',
+        source: 'header',
         status: 'identified',
       }
     }
@@ -171,6 +201,21 @@ async function buildRomItem(
       status: 'error',
       error: error instanceof Error ? error.message : 'Falha ao identificar ROM.',
     }
+  }
+}
+
+function isAlreadyRenamed(item: RomItem, config: Config): RomItem['status'] {
+  return renderTargetFileName(item, config) === item.originalName ? 'renamed' : 'identified'
+}
+
+async function safeDetectRegionFromHeader(
+  filePath: string,
+  platform: RomItem['platform'],
+): Promise<RomItem['region']> {
+  try {
+    return await detectRegionFromHeader(filePath, platform)
+  } catch {
+    return null
   }
 }
 

@@ -11,7 +11,7 @@ import {
   type UndoResult,
 } from '@shared/types'
 
-export type StatusFilter = 'all' | RomStatus
+export type StatusFilter = 'all' | 'not-renamed' | RomStatus
 
 interface RomStoreState {
   folderPath: string | null
@@ -130,6 +130,8 @@ export const useRomStore = create<RomStoreState>((set, get) => ({
         title: 'Lendo a pasta...',
         detail: 'Preparando leitura da pasta selecionada.',
       },
+      items: [],
+      selectedIds: [],
       error: null,
       notice: null,
     })
@@ -334,7 +336,8 @@ export function isSelectable(item: RomItem): boolean {
 export function filterItems(items: RomItem[], statusFilter: StatusFilter, searchTerm: string): RomItem[] {
   const term = searchTerm.trim().toLowerCase()
   return items.filter((item) => {
-    if (statusFilter !== 'all' && item.status !== statusFilter) return false
+    if (statusFilter === 'not-renamed' && item.status === 'renamed') return false
+    if (statusFilter !== 'all' && statusFilter !== 'not-renamed' && item.status !== statusFilter) return false
     if (!term) return true
     return (
       item.originalName.toLowerCase().includes(term) ||
@@ -363,6 +366,8 @@ function applyRenameResult(
     selectedIds: get().selectedIds.filter((id) => !renamedIds.has(id)),
     renameSummary: null,
     pendingRenameIds: [],
+    statusFilter: renamedIds.size > 0 ? 'not-renamed' : get().statusFilter,
+    searchTerm: renamedIds.size > 0 ? '' : get().searchTerm,
     notice: `${result.updatedItems.length} itens renomeados.`,
     error: errorText,
   })

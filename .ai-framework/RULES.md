@@ -27,6 +27,7 @@ Fonte oficial de diretrizes do projeto. Use este arquivo como referencia princip
 - Operacoes sensiveis devem continuar passando por IPC com validacao de entrada no processo main.
 - Regras de negocio de ROM devem ficar fora de componentes React sempre que possivel.
 - `src/main/rom/dat.ts` concentra catalogo SQLite, importacao DAT/XML, busca manual e matching por hash/fuzzy.
+- `src/main/rom/region.ts` concentra deteccao de regiao por leitura de header binario de ROM; suporta Nintendo 64, Game Boy, Game Boy Color, Game Boy Advance e Nintendo DS.
 - `scripts/build-rom-catalog.mjs` gera catalogo SQLite bundled em `resources/rom-catalog.sqlite`; manter schema compativel com runtime.
 
 ## Regras de codigo

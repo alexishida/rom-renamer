@@ -254,12 +254,13 @@ function validateRenameCandidate(item: RomItem): string | null {
   return null
 }
 
-function renderTargetFileName(item: RomItem, rawConfig: Config): string {
+export function renderTargetFileName(item: RomItem, rawConfig: Config): string {
   const config = normalizeConfig(rawConfig)
   const originalExt = extname(item.originalName).replace(/^\./, '')
   const suggested = sanitizeFileNamePart(toCatalogTitle(item.suggestedName ?? parse(item.originalName).name))
   const source = item.source ?? ''
   const platform = item.platform ?? ''
+  const region = item.region ?? ''
   const template = config.nameTemplate.trim() || DEFAULT_CONFIG.nameTemplate
   const hasExtToken = /\{ext}/i.test(template)
   let rendered = template
@@ -269,8 +270,8 @@ function renderTargetFileName(item: RomItem, rawConfig: Config): string {
     .replace(/\{Platform}/g, platform)
     .replace(/\{Origem}/g, source)
     .replace(/\{Source}/g, source)
-    .replace(/\{Regiao}/g, '')
-    .replace(/\{Region}/g, '')
+    .replace(/\{Regiao}/g, region)
+    .replace(/\{Region}/g, region)
     .replace(/\{ext}/gi, originalExt)
     .replace(/\{[^}]+}/g, '')
     .replace(/\s+\./g, '.')

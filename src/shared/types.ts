@@ -42,9 +42,16 @@ export type Confidence = 'high' | 'medium' | 'low' | 'none'
 export type MatchSource =
   | 'no-intro'
   | 'redump'
+  | 'header'
   | null
 
 export type CatalogSource = Extract<MatchSource, 'no-intro' | 'redump'>
+
+export type RegionName =
+  | 'Brasil'
+  | 'EUA'
+  | 'Europa'
+  | 'Japan'
 
 export type RomStatus =
   | 'pending'
@@ -129,6 +136,7 @@ export interface RomItem {
   originalPath: string
   originalName: string
   platform: PlatformName | null
+  region: RegionName | null
   hashes: Hashes
   suggestedName: string | null
   coverUrl: string | null

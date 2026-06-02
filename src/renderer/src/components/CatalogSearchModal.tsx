@@ -144,6 +144,10 @@ export function CatalogSearchModal({ item, onClose }: CatalogSearchModalProps): 
           <section className="catalog-hash-panel">
             <h3>Hashes do arquivo</h3>
             <HashList hashes={item.hashes} />
+            <div className="catalog-file-meta">
+              <span>Regiao do header</span>
+              <strong>{item.region ?? 'Nao identificada'}</strong>
+            </div>
           </section>
 
           <section className="catalog-results" aria-live="polite">

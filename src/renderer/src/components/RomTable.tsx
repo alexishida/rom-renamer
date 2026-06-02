@@ -248,6 +248,7 @@ function ScanProgressState({ progress, compact = false }: ScanProgressStateProps
   const title = progress?.title ?? 'Lendo a pasta...'
   const detail = progress?.detail ?? 'Identificando arquivos de ROM e calculando hashes.'
   const percent = progressPercent(progress)
+  const detailParts = splitScanDetail(detail)
 
   return (
     <div className={`scan-progress ${compact ? 'scan-progress--inline' : ''}`}>
@@ -270,7 +271,10 @@ function ScanProgressState({ progress, compact = false }: ScanProgressStateProps
         <span className="scan-progress__fill" style={{ width: `${percent}%` }} />
       </div>
 
-      <p className="placeholder__text scan-progress__text">{detail}</p>
+      <div className="scan-progress__detail">
+        <p className="placeholder__text scan-progress__text">{detailParts.summary}</p>
+        {detailParts.fileName && <p className="placeholder__text scan-progress__file">{detailParts.fileName}</p>}
+      </div>
     </div>
   )
 }
@@ -323,6 +327,7 @@ function RomRow({
             <span className="file-name">{item.originalName}</span>
             <span className="file-sub">
               {item.platform && <span className="plat-chip">{item.platform}</span>}
+              {item.region && <span className="region-chip">{item.region}</span>}
               {item.error && <span className="file-error">{item.error}</span>}
             </span>
           </div>
@@ -399,4 +404,16 @@ function progressPercent(progress: ScanProgress | null): number {
   if (!progress) return 0
   if (progress.total <= 0) return 0
   return Math.max(0, Math.min(100, Math.round((progress.current / progress.total) * 100)))
+}
+
+function splitScanDetail(detail: string): { summary: string; fileName: string | null } {
+  const match = detail.match(/^(Arquivo \d+ de \d+):\s*(.+)$/)
+  if (!match) {
+    return { summary: detail, fileName: null }
+  }
+
+  return {
+    summary: match[1] ?? detail,
+    fileName: match[2] ?? null,
+  }
 }
