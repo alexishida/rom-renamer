@@ -1,9 +1,10 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { JSX } from 'react'
-import { Ban, Check, CheckCheck, FilterX, FolderOpen, Inbox, RotateCw, SearchX, X } from 'lucide-react'
+import { Ban, Check, CheckCheck, FilterX, FolderOpen, Inbox, RotateCw, Search, SearchX, X } from 'lucide-react'
 import type { RomItem, ScanProgress } from '@shared/types'
 import { filterItems, isSelectable, useRomStore } from '@renderer/stores/useRomStore'
 import { sourceLabel } from '@renderer/lib/labels'
+import { CatalogSearchModal } from './CatalogSearchModal'
 import { StatusBadge } from './StatusBadge'
 
 export function RomTable(): JSX.Element {
@@ -28,6 +29,7 @@ export function RomTable(): JSX.Element {
   const validateMany = useRomStore((state) => state.validateMany)
   const ignoreMany = useRomStore((state) => state.ignoreMany)
   const renameSelected = useRomStore((state) => state.renameSelected)
+  const [catalogSearchItemId, setCatalogSearchItemId] = useState<string | null>(null)
 
   const filtered = useMemo(
     () => filterItems(items, statusFilter, searchTerm),
@@ -39,6 +41,10 @@ export function RomTable(): JSX.Element {
   const visibleSelectedCount = visibleSelectable.filter((item) => selectedSet.has(item.id)).length
   const allChecked = visibleSelectable.length > 0 && visibleSelectedCount === visibleSelectable.length
   const someChecked = visibleSelectedCount > 0 && !allChecked
+  const catalogSearchItem = useMemo(
+    () => items.find((item) => item.id === catalogSearchItemId) ?? null,
+    [items, catalogSearchItemId],
+  )
 
   const headerRef = useRef<HTMLInputElement>(null)
   if (headerRef.current) headerRef.current.indeterminate = someChecked
@@ -163,6 +169,7 @@ export function RomTable(): JSX.Element {
                   onToggle={() => toggleSelected(item.id)}
                   onChangeName={(value) => setSuggestedName(item.id, value)}
                   onSyncName={() => syncSuggestedName(item.id)}
+                  onOpenSearch={() => setCatalogSearchItemId(item.id)}
                   onValidate={() => validateItem(item.id)}
                   onIgnore={() => ignoreItem(item.id)}
                   onRename={() => renameOne(item.id)}
@@ -172,6 +179,8 @@ export function RomTable(): JSX.Element {
           </table>
         </div>
       )}
+
+      <CatalogSearchModal item={catalogSearchItem} onClose={() => setCatalogSearchItemId(null)} />
     </>
   )
 }
@@ -273,6 +282,7 @@ interface RomRowProps {
   onToggle: () => void
   onChangeName: (value: string) => void
   onSyncName: () => void
+  onOpenSearch: () => void
   onValidate: () => void
   onIgnore: () => void
   onRename: () => void
@@ -285,11 +295,13 @@ function RomRow({
   onToggle,
   onChangeName,
   onSyncName,
+  onOpenSearch,
   onValidate,
   onIgnore,
   onRename,
 }: RomRowProps): JSX.Element {
   const canSelect = isSelectable(item)
+  const canEditSuggestion = item.status !== 'ignored' && item.status !== 'renamed'
   const canValidate = canSelect && Boolean(item.suggestedName?.trim())
   const canRename = item.status === 'validated'
 
@@ -317,15 +329,27 @@ function RomRow({
         </div>
       </td>
       <td>
-        <input
-          className="suggest-input"
-          value={item.suggestedName ?? ''}
-          onChange={(event) => onChangeName(event.target.value)}
-          onBlur={onSyncName}
-          disabled={item.status === 'ignored' || item.status === 'renamed'}
-          placeholder="Sem sugestão"
-          aria-label={`Nome sugerido para ${item.originalName}`}
-        />
+        <div className="suggest-cell">
+          <input
+            className="suggest-input"
+            value={item.suggestedName ?? ''}
+            onChange={(event) => onChangeName(event.target.value)}
+            onBlur={onSyncName}
+            disabled={!canEditSuggestion}
+            placeholder="Sem sugestão"
+            aria-label={`Nome sugerido para ${item.originalName}`}
+          />
+          <button
+            className="icon-btn icon-btn--sm suggest-search-btn"
+            type="button"
+            onClick={onOpenSearch}
+            disabled={!canEditSuggestion || disabled}
+            title="Buscar no catálogo"
+            aria-label={`Buscar no catálogo para ${item.originalName}`}
+          >
+            <Search size={16} aria-hidden="true" />
+          </button>
+        </div>
       </td>
       <td>
         <div className="ident">

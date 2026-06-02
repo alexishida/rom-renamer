@@ -44,6 +44,8 @@ export type MatchSource =
   | 'redump'
   | null
 
+export type CatalogSource = Extract<MatchSource, 'no-intro' | 'redump'>
+
 export type RomStatus =
   | 'pending'
   | 'identifying'
@@ -59,6 +61,58 @@ export interface Hashes {
   crc32: string | null
   md5: string | null
   sha1: string | null
+}
+
+export interface CatalogSearchResult {
+  id: number
+  name: string
+  romName: string
+  source: CatalogSource
+  size: number | null
+  hashes: Hashes & {
+    sha256: string | null
+  }
+}
+
+export interface CatalogFileSummary {
+  id: number
+  path: string
+  fileName: string
+  source: CatalogSource
+  catalogName: string | null
+  catalogVersion: string | null
+  fileSize: number
+  mtimeMs: number
+  importedAt: string
+  romCount: number
+  fileSha256: string | null
+}
+
+export type CatalogImportFileStatus = 'imported' | 'skipped' | 'error'
+
+export interface CatalogImportFileResult {
+  path: string
+  fileName: string
+  status: CatalogImportFileStatus
+  message: string
+  source: CatalogSource | null
+  roms: number
+  catalogFileId: number | null
+}
+
+export interface CatalogImportResult {
+  importedFiles: number
+  skippedFiles: number
+  errorFiles: number
+  importedRoms: number
+  files: CatalogImportFileResult[]
+  catalogFiles: CatalogFileSummary[]
+}
+
+export interface CatalogDeleteResult {
+  deletedFiles: number
+  deletedRoms: number
+  catalogFiles: CatalogFileSummary[]
 }
 
 export type PlatformOverride = PlatformName | 'auto'

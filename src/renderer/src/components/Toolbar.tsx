@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { CheckCheck, FolderOpen, Gamepad2, RefreshCw, RotateCcw, Settings } from 'lucide-react'
+import { CheckCheck, Database, FolderOpen, Gamepad2, RefreshCw, RotateCcw, Settings } from 'lucide-react'
 import { countByStatus, useRomStore } from '@renderer/stores/useRomStore'
 
 export function Toolbar(): JSX.Element {
@@ -10,6 +10,7 @@ export function Toolbar(): JSX.Element {
   const identifyAll = useRomStore((state) => state.identifyAll)
   const renameAllValidated = useRomStore((state) => state.renameAllValidated)
   const undoLastRename = useRomStore((state) => state.undoLastRename)
+  const setCatalogModalOpen = useRomStore((state) => state.setCatalogModalOpen)
   const setConfigOpen = useRomStore((state) => state.setConfigOpen)
   const counts = countByStatus(items)
 
@@ -53,6 +54,15 @@ export function Toolbar(): JSX.Element {
       </div>
 
       <div className="topbar__right">
+        <button
+          className="icon-btn"
+          type="button"
+          onClick={() => setCatalogModalOpen(true)}
+          disabled={scanning}
+          title="Catalogo DAT"
+        >
+          <Database size={17} aria-hidden="true" />
+        </button>
         <button
           className="icon-btn"
           type="button"

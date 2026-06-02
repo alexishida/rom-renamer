@@ -1,9 +1,10 @@
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
-const CATALOG_SCHEMA_VERSION = '1'
+const CATALOG_SCHEMA_VERSION = '2'
 const DEFAULT_INPUT_PATH = 'temp'
 const DEFAULT_OUTPUT_PATH = 'resources/rom-catalog.sqlite'
 const DAT_EXTENSIONS = new Set(['.dat', '.xml'])
@@ -117,6 +118,7 @@ function initCatalogSchema(db) {
       id INTEGER PRIMARY KEY,
       path TEXT NOT NULL UNIQUE,
       file_name TEXT NOT NULL,
+      file_sha256 TEXT,
       source TEXT NOT NULL CHECK (source IN ('no-intro', 'redump')),
       catalog_name TEXT,
       catalog_version TEXT,
@@ -141,6 +143,9 @@ function initCatalogSchema(db) {
     CREATE INDEX idx_roms_crc32 ON roms(crc32);
     CREATE INDEX idx_roms_md5 ON roms(md5);
     CREATE INDEX idx_roms_sha1 ON roms(sha1);
+    CREATE UNIQUE INDEX idx_catalog_files_file_sha256
+      ON catalog_files(file_sha256)
+      WHERE file_sha256 IS NOT NULL;
   `)
 
   db.prepare('INSERT INTO catalog_meta (key, value) VALUES (?, ?)').run(
@@ -157,9 +162,9 @@ function createImportStatements(db) {
   return {
     insertFile: db.prepare(`
       INSERT INTO catalog_files (
-        path, file_name, source, catalog_name, catalog_version, file_size, mtime_ms, imported_at
+        path, file_name, file_sha256, source, catalog_name, catalog_version, file_size, mtime_ms, imported_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     insertRom: db.prepare(`
       INSERT INTO roms (
@@ -172,13 +177,16 @@ function createImportStatements(db) {
 
 async function importDatFile(statements, filePath) {
   const fileStats = await stat(filePath)
-  const content = await readFile(filePath, 'utf8')
+  const buffer = await readFile(filePath)
+  const content = buffer.toString('utf8')
+  const fileSha256 = createHash('sha256').update(buffer).digest('hex').toUpperCase()
   const metadata = parseCatalogMetadata(content)
   const source = inferDatSource(content)
   const importedAt = new Date().toISOString()
   const catalogFileId = Number(statements.insertFile.run(
     filePath,
     basename(filePath),
+    fileSha256,
     source,
     metadata.name,
     metadata.version,

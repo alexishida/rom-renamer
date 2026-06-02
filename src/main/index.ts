@@ -4,6 +4,15 @@ import { normalizeConfig, type Config, type RomItem, type RomStatus, type ScanPr
 import { readConfig, saveConfig } from './config'
 import { scanFolder } from './rom/scanner'
 import { createRenameSummary, renameItems, undoRename, type RenameLog } from './rom/rename'
+import {
+  clearCatalog,
+  deleteCatalogFile,
+  findCatalogSearchResultById,
+  importDatFiles,
+  listCatalogFiles,
+  searchCatalog,
+} from './rom/dat'
+import { preserveNameMetadata } from './rom/naming'
 
 const currentItems = new Map<string, RomItem>()
 let lastRenameLog: RenameLog | null = null
@@ -66,6 +75,18 @@ function registerIpcHandlers(): void {
     return result.filePaths[0] ?? null
   })
 
+  ipcMain.handle('dialog:chooseDatFiles', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'Arquivos DAT/XML', extensions: ['dat', 'xml'] },
+      ],
+    })
+
+    if (result.canceled) return []
+    return result.filePaths
+  })
+
   ipcMain.handle('config:get', async () => readConfig())
 
   ipcMain.handle('config:save', async (_event, rawConfig: unknown) => {
@@ -91,6 +112,51 @@ function registerIpcHandlers(): void {
       ...item,
       suggestedName,
       status: item.status === 'ignored' || item.status === 'renamed' ? item.status : 'identified',
+      error: null,
+    }
+    currentItems.set(id, updated)
+    return updated
+  })
+
+  ipcMain.handle('catalog:search', async (_event, rawRequest: unknown) => {
+    const { query, limit } = parseCatalogSearchRequest(rawRequest)
+    return searchCatalog(query, limit)
+  })
+
+  ipcMain.handle('catalog:listFiles', async () => {
+    return listCatalogFiles()
+  })
+
+  ipcMain.handle('catalog:importDatFiles', async (_event, rawRequest: unknown) => {
+    const { paths } = parseCatalogImportRequest(rawRequest)
+    return importDatFiles(paths)
+  })
+
+  ipcMain.handle('catalog:deleteFile', async (_event, rawRequest: unknown) => {
+    const { id } = parseCatalogFileDeleteRequest(rawRequest)
+    return deleteCatalogFile(id)
+  })
+
+  ipcMain.handle('catalog:clear', async () => {
+    return clearCatalog()
+  })
+
+  ipcMain.handle('rom:applyCatalogSuggestion', async (_event, rawRequest: unknown) => {
+    const { id, catalogId } = parseCatalogSuggestionRequest(rawRequest)
+    const item = requireItem(id)
+    if (item.status === 'ignored' || item.status === 'renamed') {
+      throw new Error('Item nao permite alteracao.')
+    }
+
+    const result = await findCatalogSearchResultById(catalogId)
+    if (!result) throw new Error('Resultado do catalogo nao encontrado.')
+
+    const updated: RomItem = {
+      ...item,
+      suggestedName: preserveNameMetadata(result.name, item.originalName),
+      confidence: 'high',
+      source: result.source,
+      status: 'identified',
       error: null,
     }
     currentItems.set(id, updated)
@@ -152,6 +218,57 @@ function parseSuggestionRequest(value: unknown): { id: string; suggestedName: st
   return {
     id: requireString(record.id, 'id invalido.'),
     suggestedName: requireString(record.suggestedName, 'suggestedName invalido.').trim(),
+  }
+}
+
+function parseCatalogSearchRequest(value: unknown): { query: string; limit: number } {
+  const record = requireRecord(value, 'Requisicao de busca invalida.')
+  const query = requireString(record.query, 'query invalido.').trim()
+  if (query.length > 160) throw new Error('query invalido.')
+
+  const limit = record.limit
+  if (limit === undefined) return { query, limit: 20 }
+  if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 30) {
+    throw new Error('limit invalido.')
+  }
+
+  return { query, limit }
+}
+
+function parseCatalogImportRequest(value: unknown): { paths: string[] } {
+  const record = requireRecord(value, 'Requisicao de importacao invalida.')
+  if (!Array.isArray(record.paths) || record.paths.length > 100) {
+    throw new Error('paths invalido.')
+  }
+
+  const paths = record.paths.map((path) => requireString(path, 'path invalido.').trim())
+  if (!paths.length || paths.some((path) => path.length === 0)) {
+    throw new Error('paths invalido.')
+  }
+
+  return { paths }
+}
+
+function parseCatalogFileDeleteRequest(value: unknown): { id: number } {
+  const record = requireRecord(value, 'Requisicao de exclusao invalida.')
+  const id = record.id
+  if (typeof id !== 'number' || !Number.isInteger(id) || id < 1) {
+    throw new Error('id invalido.')
+  }
+
+  return { id }
+}
+
+function parseCatalogSuggestionRequest(value: unknown): { id: string; catalogId: number } {
+  const record = requireRecord(value, 'Requisicao de catalogo invalida.')
+  const catalogId = record.catalogId
+  if (typeof catalogId !== 'number' || !Number.isInteger(catalogId) || catalogId < 1) {
+    throw new Error('catalogId invalido.')
+  }
+
+  return {
+    id: requireString(record.id, 'id invalido.'),
+    catalogId,
   }
 }
 

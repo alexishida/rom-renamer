@@ -27,6 +27,7 @@ interface RomStoreState {
   // UI state
   configOpen: boolean
   folderModalOpen: boolean
+  catalogModalOpen: boolean
   statusFilter: StatusFilter
   searchTerm: string
   hydrateConfig: () => Promise<void>
@@ -39,6 +40,7 @@ interface RomStoreState {
   updateConfig: (config: Config) => Promise<void>
   setSuggestedName: (id: string, suggestedName: string) => void
   syncSuggestedName: (id: string) => Promise<void>
+  applyCatalogSuggestion: (id: string, catalogId: number) => Promise<void>
   validateItem: (id: string) => Promise<void>
   ignoreItem: (id: string) => Promise<void>
   validateMany: (ids: string[]) => Promise<void>
@@ -56,6 +58,7 @@ interface RomStoreState {
   undoLastRename: () => Promise<void>
   setConfigOpen: (open: boolean) => void
   setFolderModalOpen: (open: boolean) => void
+  setCatalogModalOpen: (open: boolean) => void
   setStatusFilter: (filter: StatusFilter) => void
   setSearchTerm: (term: string) => void
   setScanProgress: (progress: ScanProgress | null) => void
@@ -75,6 +78,7 @@ export const useRomStore = create<RomStoreState>((set, get) => ({
   error: null,
   configOpen: false,
   folderModalOpen: false,
+  catalogModalOpen: false,
   statusFilter: 'all',
   searchTerm: '',
 
@@ -181,6 +185,16 @@ export const useRomStore = create<RomStoreState>((set, get) => ({
       set({ items: replaceItem(get().items, updated), error: null })
     } catch (error) {
       set({ error: errorMessage(error) })
+    }
+  },
+
+  applyCatalogSuggestion: async (id, catalogId) => {
+    try {
+      const updated = await window.api.applyCatalogSuggestion(id, catalogId)
+      set({ items: replaceItem(get().items, updated), error: null })
+    } catch (error) {
+      set({ error: errorMessage(error) })
+      throw error
     }
   },
 
@@ -301,6 +315,8 @@ export const useRomStore = create<RomStoreState>((set, get) => ({
   setConfigOpen: (configOpen) => set({ configOpen }),
 
   setFolderModalOpen: (folderModalOpen) => set({ folderModalOpen }),
+
+  setCatalogModalOpen: (catalogModalOpen) => set({ catalogModalOpen }),
 
   setStatusFilter: (statusFilter) => set({ statusFilter }),
 
