@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import { normalizeConfig, type Config, type RomItem, type RomStatus, type ScanProgress } from '@shared/types'
+import { normalizeConfig, type Config, type PlatformName, type RomItem, type RomStatus, type ScanProgress } from '@shared/types'
 import { readConfig, saveConfig } from './config'
 import { scanFolder } from './rom/scanner'
 import { createRenameSummary, renameItems, undoRename, type RenameLog } from './rom/rename'
@@ -119,8 +119,8 @@ function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('catalog:search', async (_event, rawRequest: unknown) => {
-    const { query, limit } = parseCatalogSearchRequest(rawRequest)
-    return searchCatalog(query, limit)
+    const { query, limit, platformName } = parseCatalogSearchRequest(rawRequest)
+    return searchCatalog(query, limit, platformName)
   })
 
   ipcMain.handle('catalog:listFiles', async () => {
@@ -221,18 +221,19 @@ function parseSuggestionRequest(value: unknown): { id: string; suggestedName: st
   }
 }
 
-function parseCatalogSearchRequest(value: unknown): { query: string; limit: number } {
+function parseCatalogSearchRequest(value: unknown): { query: string; limit: number; platformName: PlatformName | null } {
   const record = requireRecord(value, 'Requisicao de busca invalida.')
   const query = requireString(record.query, 'query invalido.').trim()
   if (query.length > 160) throw new Error('query invalido.')
 
   const limit = record.limit
-  if (limit === undefined) return { query, limit: 20 }
-  if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 30) {
+  if (limit !== undefined && (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 30)) {
     throw new Error('limit invalido.')
   }
 
-  return { query, limit }
+  const platformName = typeof record.platformName === 'string' ? record.platformName as PlatformName : null
+
+  return { query, limit: typeof limit === 'number' ? limit : 20, platformName }
 }
 
 function parseCatalogImportRequest(value: unknown): { paths: string[] } {

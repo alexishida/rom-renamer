@@ -51,7 +51,7 @@ export function CatalogSearchModal({ item, onClose }: CatalogSearchModalProps): 
     setError(null)
 
     const timer = window.setTimeout(() => {
-      void window.api.searchCatalog(trimmed)
+      void window.api.searchCatalog(trimmed, item.platform)
         .then((nextResults) => {
           if (active) setResults(nextResults)
         })

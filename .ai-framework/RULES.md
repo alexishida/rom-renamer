@@ -8,6 +8,7 @@ Fonte oficial de diretrizes do projeto. Use este arquivo como referencia princip
 - Precisao de identificacao, previsibilidade de rename e clareza de interface valem mais que automacao agressiva.
 - Toda alteracao deve preservar confianca do usuario no que sera escrito em disco.
 - Identificacao offline por catalogo SQLite local e preferivel a chamadas externas durante o fluxo principal.
+- Stack principal atual: Electron + electron-vite + React 19 + Zustand + TypeScript.
 
 ## Regras gerais
 
@@ -24,11 +25,14 @@ Fonte oficial de diretrizes do projeto. Use este arquivo como referencia princip
 - `src/renderer` cuida de interface, estado de tela e interacoes do usuario.
 - `src/preload` e unica ponte entre renderer e Electron nativo. Renderer nao deve acessar Node ou filesystem direto.
 - `src/shared/types.ts` e contrato compartilhado. Mudancas em payloads, status, configuracao ou plataformas devem partir dele.
+- `src/renderer/src/stores/useRomStore.ts` e orquestrador principal de estado e fluxos da UI; evitar mover regra de negocio pesada para componentes.
+- `src/renderer/src/components` concentra modais, toolbar, tabela, filtros e dialogos de feedback; seguir composicao existente antes de criar nova tela paralela.
 - Operacoes sensiveis devem continuar passando por IPC com validacao de entrada no processo main.
 - Regras de negocio de ROM devem ficar fora de componentes React sempre que possivel.
 - `src/main/rom/dat.ts` concentra catalogo SQLite, importacao DAT/XML, busca manual e matching por hash/fuzzy.
 - `src/main/rom/region.ts` concentra deteccao de regiao por leitura de header binario de ROM; suporta Nintendo 64, Game Boy, Game Boy Color, Game Boy Advance e Nintendo DS.
-- `scripts/build-rom-catalog.mjs` gera catalogo SQLite bundled em `resources/rom-catalog.sqlite`; manter schema compativel com runtime.
+- `scripts/build-rom-catalog.mjs` gera catalogo SQLite bundled em `resources/rom-catalog.sqlite`; manter parser e schema compativeis com runtime.
+- Base bundled de catalogo nasce de DATs locais em `dat/`; arquivos temporarios em `temp/` nao devem virar dependencia permanente do fluxo.
 
 ## Regras de codigo
 
@@ -45,6 +49,7 @@ Fonte oficial de diretrizes do projeto. Use este arquivo como referencia princip
 - Pipeline de identificacao deve seguir esta ordem: detectar plataforma, calcular hashes, consultar catalogo SQLite local por hash e so entao tentar fuzzy por nome no catalogo local.
 - Match exato de hash no catalogo local e fonte de maior confianca (`high`).
 - Match fuzzy por nome e apenas sugestao de baixa confianca (`low`) e nunca deve virar rename sem validacao explicita.
+- Busca manual no catalogo pode usar contexto de plataforma para reduzir resultados irrelevantes, mas sem impedir fallback ao catalogo completo quando nao houver arquivo compativel carregado.
 - Quando hash e fuzzy falham, item deve ficar `pending`, sem sugestao automatica confiavel.
 - Rename em lote deve continuar passando por etapa de preview e confirmacao antes de tocar disco.
 - Itens com baixa confianca ou sem sugestao confiavel nao devem ser promovidos a rename automatico sem validacao explicita.
@@ -58,6 +63,7 @@ Fonte oficial de diretrizes do projeto. Use este arquivo como referencia princip
 
 - Catalogo runtime deve ser SQLite local no `userData`, com copia inicial do bundled quando disponivel.
 - Importacao de DAT/XML deve deduplicar por caminho normalizado e SHA-256 do arquivo.
+- Parser de DAT/XML deve aceitar blocos `game`, `machine` e `software`; quando `name` faltar, pode usar `description` como fallback legivel.
 - Busca manual no catalogo deve tentar LIKE ranqueado antes de fuzzy.
 - Fuzzy automatico deve usar limiar alto o bastante para evitar falso positivo agressivo.
 - Limpar catalogo ou remover arquivo importado deve ser acao explicita da UI e reportar contagem removida.
@@ -81,6 +87,7 @@ Essas diretrizes devem ser seguidas sempre que houver criacao ou alteracao de te
 - Manter consistencia entre telas e componentes em layout, tipografia, cores, espacamento, estados visuais e comportamento responsivo.
 - Priorizar legibilidade, hierarquia de informacao, contraste adequado e clareza de interacao.
 - Reutilizar componentes, estilos e classes existentes antes de criar variacoes.
+- Formularios e modais devem evitar rotulos redundantes quando cabecalho, contexto e placeholder ja comunicam mesma informacao.
 - Criar nova solucao visual so quando houver necessidade real de produto, usabilidade ou escalabilidade.
 - Considerar tamanhos de tela menores, foco visivel, estados vazios e previsibilidade de uso em qualquer alteracao visual.
 

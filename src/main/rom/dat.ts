@@ -12,6 +12,7 @@ import type {
   CatalogImportResult,
   CatalogSearchResult,
   CatalogSource,
+  PlatformName,
 } from '@shared/types'
 
 type DatSource = CatalogSource
@@ -29,10 +30,42 @@ export interface DatIndex {
   entries: number
 }
 
+const PLATFORM_CATALOG_KEYWORDS: Partial<Record<PlatformName, string[]>> = {
+  'NES': ['Nintendo Entertainment System'],
+  'SNES': ['Super Nintendo Entertainment System'],
+  'Nintendo 64': ['Nintendo 64'],
+  'Game Boy': ['Game Boy'],
+  'Game Boy Color': ['Game Boy Color'],
+  'Game Boy Advance': ['Game Boy Advance'],
+  'Nintendo DS': ['Nintendo DS'],
+  'Nintendo 3DS': ['Nintendo 3DS'],
+  'GameCube': ['GameCube'],
+  'Wii': ['Wii'],
+  'Wii U': ['Wii U'],
+  'Master System': ['Master System'],
+  'Game Gear': ['Game Gear'],
+  'Mega Drive': ['Mega Drive', 'Genesis'],
+  'Sega 32X': ['32X'],
+  'Mega CD': ['Mega-CD', 'Sega CD'],
+  'Sega Saturn': ['Saturn'],
+  'Dreamcast': ['Dreamcast'],
+  'PlayStation 1': ['PlayStation'],
+  'PlayStation 2': ['PlayStation 2'],
+  'PlayStation 3': ['PlayStation 3'],
+  'PlayStation Portable': ['PlayStation Portable'],
+  'Atari 2600': ['Atari 2600'],
+  'Atari 7800': ['Atari 7800'],
+  'Atari Jaguar': ['Jaguar'],
+  'Neo Geo': ['Neo Geo'],
+  'Neo Geo Pocket': ['Neo Geo Pocket'],
+  'PC Engine': ['PC Engine', 'TurboGrafx'],
+  'WonderSwan': ['WonderSwan'],
+}
+
 const CATALOG_DB_FILE = 'rom-catalog.sqlite'
 const CATALOG_SCHEMA_VERSION = '2'
 const DAT_EXTENSIONS = new Set(['.dat', '.xml'])
-const GAME_BLOCK_PATTERN = /<(game|machine)\b([^>]*)>([\s\S]*?)<\/\1>/gi
+const GAME_BLOCK_PATTERN = /<(game|machine|software)\b([^>]*)>([\s\S]*?)<\/\1>/gi
 const ROM_TAG_PATTERN = /<rom\b([^>]*)\/?>/gi
 const ATTR_PATTERN = /\b([a-zA-Z0-9_-]+)="([^"]*)"/g
 const FUZZY_AUTO_MIN_SCORE = 86
@@ -192,7 +225,7 @@ export async function clearCatalog(): Promise<CatalogDeleteResult> {
   }
 }
 
-export async function searchCatalog(query: string, limit = 20): Promise<CatalogSearchResult[]> {
+export async function searchCatalog(query: string, limit = 20, platformName?: PlatformName | null): Promise<CatalogSearchResult[]> {
   const term = normalizeSearchTerm(query)
   if (term.length < 2) return []
 
@@ -206,7 +239,9 @@ export async function searchCatalog(query: string, limit = 20): Promise<CatalogS
     const safeLimit = Number.isFinite(limit)
       ? Math.max(1, Math.min(30, Math.floor(limit)))
       : 12
-    const rows = searchCatalogRowsByLike(db, term, safeLimit)
+
+    const catalogFileIds = platformName ? findCatalogFileIdsByPlatform(db, platformName) : null
+    const rows = searchCatalogRowsByLike(db, term, safeLimit, catalogFileIds)
     const results = dedupeCatalogResults(
       rows
         .map(toCatalogSearchResult)
@@ -216,7 +251,7 @@ export async function searchCatalog(query: string, limit = 20): Promise<CatalogS
     if (results.length) return results.slice(0, safeLimit)
 
     return dedupeCatalogResults(
-      rankFuzzyRows(term, fuzzyCatalogCandidates(db, term), FUZZY_SEARCH_MIN_SCORE, safeLimit)
+      rankFuzzyRows(term, fuzzyCatalogCandidates(db, term, catalogFileIds), FUZZY_SEARCH_MIN_SCORE, safeLimit)
         .map(({ row }) => toCatalogSearchResult(row))
         .filter((result): result is CatalogSearchResult => result !== null),
     ).slice(0, safeLimit)
@@ -594,12 +629,33 @@ function prepareLookup(db: DatabaseSync, column: 'crc32' | 'md5' | 'sha1'): Stat
   `)
 }
 
-function searchCatalogRowsByLike(db: DatabaseSync, term: string, limit: number): CatalogRow[] {
+function findCatalogFileIdsByPlatform(db: DatabaseSync, platformName: PlatformName): number[] | null {
+  const keywords = PLATFORM_CATALOG_KEYWORDS[platformName]
+  if (!keywords?.length) return null
+
+  const clauses = keywords.map(() => "catalog_name LIKE ? ESCAPE '!'")
+  const params = keywords.map((kw) => `%${escapeLikeTerm(kw)}%`)
+
+  const rows = db.prepare(`
+    SELECT id FROM catalog_files WHERE ${clauses.join(' OR ')}
+  `).all(...params) as unknown as Array<{ id: unknown }>
+
+  const ids = rows.map((row) => row.id).filter((id): id is number => typeof id === 'number')
+  return ids.length > 0 ? ids : null
+}
+
+function buildCatalogFileIdFilter(ids: number[] | null): string {
+  if (!ids) return ''
+  return `AND catalog_file_id IN (${ids.map(() => '?').join(',')})`
+}
+
+function searchCatalogRowsByLike(db: DatabaseSync, term: string, limit: number, catalogFileIds: number[] | null = null): CatalogRow[] {
   const fetchLimit = Math.min(90, limit * 4)
   const escapedTerm = escapeLikeTerm(term)
   const containsTerm = `%${escapedTerm}%`
   const prefixTerm = `${escapedTerm}%`
 
+  const idFilter = buildCatalogFileIdFilter(catalogFileIds)
   return db.prepare(`
     SELECT
       id,
@@ -612,7 +668,8 @@ function searchCatalogRowsByLike(db: DatabaseSync, term: string, limit: number):
       sha1,
       sha256
     FROM roms
-    WHERE game_name LIKE ? ESCAPE '!' OR rom_name LIKE ? ESCAPE '!'
+    WHERE (game_name LIKE ? ESCAPE '!' OR rom_name LIKE ? ESCAPE '!')
+    ${idFilter}
     ORDER BY
       CASE
         WHEN game_name = ? COLLATE NOCASE THEN 0
@@ -628,10 +685,10 @@ function searchCatalogRowsByLike(db: DatabaseSync, term: string, limit: number):
       game_name,
       rom_name
     LIMIT ?
-  `).all(containsTerm, containsTerm, term, prefixTerm, prefixTerm, fetchLimit) as unknown as CatalogRow[]
+  `).all(containsTerm, containsTerm, ...(catalogFileIds ?? []), term, prefixTerm, prefixTerm, fetchLimit) as unknown as CatalogRow[]
 }
 
-function fuzzyCatalogCandidates(db: DatabaseSync, query: string): CatalogRow[] {
+function fuzzyCatalogCandidates(db: DatabaseSync, query: string, catalogFileIds: number[] | null = null): CatalogRow[] {
   const anchors = fuzzyAnchors(query)
   if (!anchors.length) return []
 
@@ -655,6 +712,8 @@ function fuzzyCatalogCandidates(db: DatabaseSync, query: string): CatalogRow[] {
     }
   }
 
+  const idFilter = buildCatalogFileIdFilter(catalogFileIds)
+  if (catalogFileIds) params.push(...catalogFileIds)
   params.push(MAX_FUZZY_CANDIDATES)
 
   return db.prepare(`
@@ -669,7 +728,8 @@ function fuzzyCatalogCandidates(db: DatabaseSync, query: string): CatalogRow[] {
       sha1,
       sha256
     FROM roms
-    WHERE ${clauses.join(' OR ')}
+    WHERE (${clauses.join(' OR ')})
+    ${idFilter}
     ORDER BY
       CASE source
         WHEN 'no-intro' THEN 0
@@ -844,6 +904,8 @@ function* parseDatContent(content: string): Generator<ParsedDatEntry> {
     const gameAttrs = parseAttributes(gameMatch[2] ?? '')
     const block = gameMatch[3] ?? ''
     const gameName = decodeXml(gameAttrs.get('name') ?? '').trim()
+      || parseTagText(block, 'description')?.trim()
+      || ''
 
     for (const romMatch of block.matchAll(ROM_TAG_PATTERN)) {
       const attrs = parseAttributes(romMatch[1] ?? '')

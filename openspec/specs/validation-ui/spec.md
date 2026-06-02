@@ -86,7 +86,8 @@ The UI MUST allow manual catalog search for an item and applying a catalog resul
 #### Scenario: User opens row catalog search
 - **WHEN** the search icon is clicked on an editable item
 - **THEN** the modal opens with query seeded from suggested name or original filename
-- **AND** displays the item's hashes.
+- **AND** displays the item's hashes
+- **AND** sends the item platform as optional catalog-search context when querying the local database.
 
 #### Scenario: User applies catalog result
 - **WHEN** a result is applied
@@ -96,6 +97,11 @@ The UI MUST allow manual catalog search for an item and applying a catalog resul
 
 ### Requirement: Catalog management UI
 The UI MUST provide modal tabs for importing DAT/XML files, listing loaded catalogs, searching catalog entries, and deleting catalog data.
+
+#### Scenario: User opens catalog modal
+- **WHEN** the catalog management modal is opened
+- **THEN** the `Consultar` tab is the first tab shown
+- **AND** the search field appears without redundant extra label text because the section header already gives context.
 
 #### Scenario: User imports DAT files
 - **WHEN** selected DAT/XML files are imported

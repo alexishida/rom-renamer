@@ -16,7 +16,7 @@ export function DatCatalogModal(): JSX.Element | null {
   const open = useRomStore((state) => state.catalogModalOpen)
   const setOpen = useRomStore((state) => state.setCatalogModalOpen)
 
-  const [activeTab, setActiveTab] = useState<DatTab>('import')
+  const [activeTab, setActiveTab] = useState<DatTab>('search')
   const [selectedPaths, setSelectedPaths] = useState<string[]>([])
   const [catalogFiles, setCatalogFiles] = useState<CatalogFileSummary[]>([])
   const [importResult, setImportResult] = useState<CatalogImportResult | null>(null)
@@ -114,6 +114,11 @@ export function DatCatalogModal(): JSX.Element | null {
     if (!results.length) return 'Nenhum resultado.'
     return `${results.length} resultado${results.length === 1 ? '' : 's'}`
   }, [query, results.length, searchError, searching])
+  const totalRoms = useMemo(
+    () => catalogFiles.reduce((sum, f) => sum + f.romCount, 0),
+    [catalogFiles],
+  )
+
   const catalogDeleteApiReady =
     typeof window.api.clearCatalog === 'function' &&
     typeof window.api.deleteCatalogFile === 'function'
@@ -231,6 +236,14 @@ export function DatCatalogModal(): JSX.Element | null {
 
         <div className="dat-tabs" role="tablist" aria-label="Catalogo DAT">
           <TabButton
+            active={activeTab === 'search'}
+            badge={results.length || undefined}
+            id="dat-tab-search"
+            label="Consultar"
+            panelId="dat-panel-search"
+            onClick={() => setActiveTab('search')}
+          />
+          <TabButton
             active={activeTab === 'import'}
             badge={selectedPaths.length || undefined}
             id="dat-tab-import"
@@ -245,14 +258,6 @@ export function DatCatalogModal(): JSX.Element | null {
             label="Carregados"
             panelId="dat-panel-files"
             onClick={() => setActiveTab('files')}
-          />
-          <TabButton
-            active={activeTab === 'search'}
-            badge={results.length || undefined}
-            id="dat-tab-search"
-            label="Consultar"
-            panelId="dat-panel-search"
-            onClick={() => setActiveTab('search')}
           />
         </div>
 
@@ -399,7 +404,6 @@ export function DatCatalogModal(): JSX.Element | null {
             </div>
 
             <label className="catalog-search-field">
-              <span className="field__label">Busca</span>
               <span className="catalog-search-field__control">
                 <Search size={16} aria-hidden="true" />
                 <input
@@ -575,6 +579,4 @@ function formatDate(value: string): string {
   }).format(date)
 }
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Falha inesperada.'
-}
+fu

@@ -5,6 +5,7 @@ import type {
   CatalogImportResult,
   CatalogSearchResult,
   Config,
+  PlatformName,
   RenameResult,
   RenameSummary,
   RomItem,
@@ -26,7 +27,7 @@ const api: RomRenamerApi = {
   updateSuggestion: (id, suggestedName) =>
     ipcRenderer.invoke('rom:updateSuggestion', { id, suggestedName }),
   markItem: (id, status) => ipcRenderer.invoke('rom:markItem', { id, status }),
-  searchCatalog: (query) => ipcRenderer.invoke('catalog:search', { query, limit: 20 }),
+  searchCatalog: (query, platformName) => ipcRenderer.invoke('catalog:search', { query, limit: 20, platformName: platformName ?? null }),
   listCatalogFiles: () => ipcRenderer.invoke('catalog:listFiles'),
   importDatFiles: (paths) => ipcRenderer.invoke('catalog:importDatFiles', { paths }),
   deleteCatalogFile: (id) => ipcRenderer.invoke('catalog:deleteFile', { id }),
@@ -49,7 +50,7 @@ export interface RomRenamerApi {
   onScanProgress: (callback: (progress: ScanProgress) => void) => () => void
   updateSuggestion: (id: string, suggestedName: string) => Promise<RomItem>
   markItem: (id: string, status: 'validated' | 'ignored') => Promise<RomItem>
-  searchCatalog: (query: string) => Promise<CatalogSearchResult[]>
+  searchCatalog: (query: string, platformName?: PlatformName | null) => Promise<CatalogSearchResult[]>
   listCatalogFiles: () => Promise<CatalogFileSummary[]>
   importDatFiles: (paths: string[]) => Promise<CatalogImportResult>
   deleteCatalogFile: (id: number) => Promise<CatalogDeleteResult>

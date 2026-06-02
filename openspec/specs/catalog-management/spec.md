@@ -21,12 +21,17 @@ The app MUST use a SQLite catalog database in Electron `userData` and initialize
 - **AND** foreign key cascade removes ROM rows when a catalog file row is deleted.
 
 ### Requirement: DAT/XML import
-The app MUST import `.dat` and `.xml` files by parsing `game` or `machine` blocks and `rom` entries into catalog rows.
+The app MUST import `.dat` and `.xml` files by parsing `game`, `machine`, or `software` blocks and their `rom` entries into catalog rows.
 
 #### Scenario: Valid DAT is imported
 - **WHEN** a DAT/XML file contains ROM entries
 - **THEN** the app records file metadata, source, catalog name/version, file SHA-256, size, mtime, and imported time
 - **AND** each ROM row stores game name, ROM name, size, CRC32, MD5, SHA-1, and SHA-256 when present.
+
+#### Scenario: DAT uses description instead of block name
+- **WHEN** a parsed block has no usable `name` attribute
+- **THEN** the importer uses the block `description` text as the game name fallback
+- **AND** still skips rows that end without any usable game or ROM name.
 
 #### Scenario: File has no ROM entries
 - **WHEN** a valid DAT/XML contains no parsed ROM entries
@@ -71,7 +76,7 @@ The app MUST list loaded catalog files and support deleting one file or clearing
 - **AND** returns prior counts and an empty file list.
 
 ### Requirement: Catalog search
-The app MUST provide bounded local catalog search with LIKE ranking first and fuzzy fallback when LIKE returns no usable results.
+The app MUST provide bounded local catalog search with LIKE ranking first and fuzzy fallback when LIKE returns no usable results, and it SHOULD narrow manual search to matching platform catalog files when platform context is available.
 
 #### Scenario: Query is too short
 - **WHEN** normalized query length is below 2 characters
@@ -84,6 +89,11 @@ The app MUST provide bounded local catalog search with LIKE ranking first and fu
 - **AND** `no-intro` ranks before `redump`
 - **AND** duplicate results are removed.
 
+#### Scenario: Search receives platform context
+- **WHEN** the renderer sends a ROM platform and loaded catalog file names match known keywords for that platform
+- **THEN** LIKE and fuzzy candidate search are limited to those matching catalog files first
+- **AND** if no matching catalog file names are found the search falls back to the full local catalog.
+
 #### Scenario: LIKE search finds nothing
 - **WHEN** LIKE search returns no results
 - **THEN** fuzzy candidates are ranked by normalized token and Levenshtein score
@@ -94,7 +104,7 @@ The catalog build script MUST generate a schema version 2 SQLite database from D
 
 #### Scenario: Build runs with default input
 - **WHEN** `npm run catalog:build` runs without explicit input
-- **THEN** the script imports DAT/XML files found under `temp`
+- **THEN** the script imports DAT/XML files found under `dat`
 - **AND** writes `resources/rom-catalog.sqlite`.
 
 #### Scenario: Build output already exists

@@ -5,10 +5,10 @@ import { basename, dirname, extname, join, resolve } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
 const CATALOG_SCHEMA_VERSION = '2'
-const DEFAULT_INPUT_PATH = 'temp'
+const DEFAULT_INPUT_PATH = 'dat'
 const DEFAULT_OUTPUT_PATH = 'resources/rom-catalog.sqlite'
 const DAT_EXTENSIONS = new Set(['.dat', '.xml'])
-const GAME_BLOCK_PATTERN = /<(game|machine)\b([^>]*)>([\s\S]*?)<\/\1>/gi
+const GAME_BLOCK_PATTERN = /<(game|machine|software)\b([^>]*)>([\s\S]*?)<\/\1>/gi
 const ROM_TAG_PATTERN = /<rom\b([^>]*)\/?>/gi
 const ATTR_PATTERN = /\b([a-zA-Z0-9_-]+)="([^"]*)"/g
 
@@ -245,6 +245,8 @@ function* parseDatContent(content) {
     const gameAttrs = parseAttributes(gameMatch[2] ?? '')
     const block = gameMatch[3] ?? ''
     const gameName = decodeXml(gameAttrs.get('name') ?? '').trim()
+      || parseTagText(block, 'description')?.trim()
+      || ''
 
     for (const romMatch of block.matchAll(ROM_TAG_PATTERN)) {
       const attrs = parseAttributes(romMatch[1] ?? '')
