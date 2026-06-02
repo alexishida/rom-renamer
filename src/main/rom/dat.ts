@@ -4,6 +4,7 @@ import { copyFile, mkdir, readFile, stat } from 'node:fs/promises'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { DatabaseSync, type StatementSync } from 'node:sqlite'
 import { app } from 'electron'
+import { normalizeCatalogName } from './naming'
 import type {
   CatalogDeleteResult,
   CatalogFileSummary,
@@ -34,6 +35,10 @@ const DAT_EXTENSIONS = new Set(['.dat', '.xml'])
 const GAME_BLOCK_PATTERN = /<(game|machine)\b([^>]*)>([\s\S]*?)<\/\1>/gi
 const ROM_TAG_PATTERN = /<rom\b([^>]*)\/?>/gi
 const ATTR_PATTERN = /\b([a-zA-Z0-9_-]+)="([^"]*)"/g
+const FUZZY_AUTO_MIN_SCORE = 86
+const FUZZY_SEARCH_MIN_SCORE = 55
+const MAX_FUZZY_CANDIDATES = 700
+const FUZZY_STOP_WORDS = new Set(['a', 'an', 'and', 'as', 'da', 'das', 'de', 'do', 'dos', 'e', 'la', 'le', 'no', 'of', 'the'])
 
 export async function createDatIndex(): Promise<DatIndex> {
   const dbPath = await ensureCatalogDatabase()
@@ -80,6 +85,17 @@ export function findDatMatch(
   }
 
   return null
+}
+
+export function findFuzzyDatMatch(index: DatIndex, query: string): DatMatch | null {
+  const best = rankFuzzyRows(query, fuzzyCatalogCandidates(index.db, query), FUZZY_AUTO_MIN_SCORE, 1)[0]
+  if (!best) return null
+
+  const name = best.row.name
+  const source = best.row.source
+  if (typeof name !== 'string' || !isDatSource(source)) return null
+
+  return { name, source }
 }
 
 export async function importDatFiles(filePaths: string[]): Promise<CatalogImportResult> {
@@ -190,44 +206,19 @@ export async function searchCatalog(query: string, limit = 20): Promise<CatalogS
     const safeLimit = Number.isFinite(limit)
       ? Math.max(1, Math.min(30, Math.floor(limit)))
       : 12
-    const fetchLimit = Math.min(90, safeLimit * 4)
-    const escapedTerm = escapeLikeTerm(term)
-    const containsTerm = `%${escapedTerm}%`
-    const prefixTerm = `${escapedTerm}%`
-    const rows = db.prepare(`
-      SELECT
-        id,
-        game_name AS name,
-        rom_name AS romName,
-        source,
-        size,
-        crc32,
-        md5,
-        sha1,
-        sha256
-      FROM roms
-      WHERE game_name LIKE ? ESCAPE '!' OR rom_name LIKE ? ESCAPE '!'
-      ORDER BY
-        CASE
-          WHEN game_name = ? COLLATE NOCASE THEN 0
-          WHEN game_name LIKE ? ESCAPE '!' THEN 1
-          WHEN rom_name LIKE ? ESCAPE '!' THEN 2
-          ELSE 3
-        END,
-        CASE source
-          WHEN 'no-intro' THEN 0
-          WHEN 'redump' THEN 1
-          ELSE 2
-        END,
-        game_name,
-        rom_name
-      LIMIT ?
-    `).all(containsTerm, containsTerm, term, prefixTerm, prefixTerm, fetchLimit) as unknown as CatalogRow[]
+    const rows = searchCatalogRowsByLike(db, term, safeLimit)
+    const results = dedupeCatalogResults(
+      rows
+        .map(toCatalogSearchResult)
+        .filter((result): result is CatalogSearchResult => result !== null),
+    )
+
+    if (results.length) return results.slice(0, safeLimit)
 
     return dedupeCatalogResults(
-      rows
-      .map(toCatalogSearchResult)
-      .filter((result): result is CatalogSearchResult => result !== null),
+      rankFuzzyRows(term, fuzzyCatalogCandidates(db, term), FUZZY_SEARCH_MIN_SCORE, safeLimit)
+        .map(({ row }) => toCatalogSearchResult(row))
+        .filter((result): result is CatalogSearchResult => result !== null),
     ).slice(0, safeLimit)
   } finally {
     db.close()
@@ -603,6 +594,209 @@ function prepareLookup(db: DatabaseSync, column: 'crc32' | 'md5' | 'sha1'): Stat
   `)
 }
 
+function searchCatalogRowsByLike(db: DatabaseSync, term: string, limit: number): CatalogRow[] {
+  const fetchLimit = Math.min(90, limit * 4)
+  const escapedTerm = escapeLikeTerm(term)
+  const containsTerm = `%${escapedTerm}%`
+  const prefixTerm = `${escapedTerm}%`
+
+  return db.prepare(`
+    SELECT
+      id,
+      game_name AS name,
+      rom_name AS romName,
+      source,
+      size,
+      crc32,
+      md5,
+      sha1,
+      sha256
+    FROM roms
+    WHERE game_name LIKE ? ESCAPE '!' OR rom_name LIKE ? ESCAPE '!'
+    ORDER BY
+      CASE
+        WHEN game_name = ? COLLATE NOCASE THEN 0
+        WHEN game_name LIKE ? ESCAPE '!' THEN 1
+        WHEN rom_name LIKE ? ESCAPE '!' THEN 2
+        ELSE 3
+      END,
+      CASE source
+        WHEN 'no-intro' THEN 0
+        WHEN 'redump' THEN 1
+        ELSE 2
+      END,
+      game_name,
+      rom_name
+    LIMIT ?
+  `).all(containsTerm, containsTerm, term, prefixTerm, prefixTerm, fetchLimit) as unknown as CatalogRow[]
+}
+
+function fuzzyCatalogCandidates(db: DatabaseSync, query: string): CatalogRow[] {
+  const anchors = fuzzyAnchors(query)
+  if (!anchors.length) return []
+
+  const clauses: string[] = []
+  const params: Array<string | number> = []
+
+  for (const anchor of anchors) {
+    const containsTerm = `%${escapeLikeTerm(anchor)}%`
+    clauses.push("game_name LIKE ? ESCAPE '!'")
+    params.push(containsTerm)
+    clauses.push("rom_name LIKE ? ESCAPE '!'")
+    params.push(containsTerm)
+
+    const prefix = anchor.slice(0, Math.min(3, anchor.length))
+    if (prefix.length >= 2) {
+      const prefixTerm = `${escapeLikeTerm(prefix)}%`
+      clauses.push("game_name LIKE ? ESCAPE '!'")
+      params.push(prefixTerm)
+      clauses.push("rom_name LIKE ? ESCAPE '!'")
+      params.push(prefixTerm)
+    }
+  }
+
+  params.push(MAX_FUZZY_CANDIDATES)
+
+  return db.prepare(`
+    SELECT
+      id,
+      game_name AS name,
+      rom_name AS romName,
+      source,
+      size,
+      crc32,
+      md5,
+      sha1,
+      sha256
+    FROM roms
+    WHERE ${clauses.join(' OR ')}
+    ORDER BY
+      CASE source
+        WHEN 'no-intro' THEN 0
+        WHEN 'redump' THEN 1
+        ELSE 2
+      END,
+      game_name,
+      rom_name
+    LIMIT ?
+  `).all(...params) as unknown as CatalogRow[]
+}
+
+function rankFuzzyRows(
+  query: string,
+  rows: CatalogRow[],
+  minScore: number,
+  limit: number,
+): ScoredCatalogRow[] {
+  const queryKey = matchKey(query)
+  if (!queryKey) return []
+
+  return rows
+    .map((row) => ({
+      row,
+      score: catalogRowScore(queryKey, row),
+    }))
+    .filter(({ score }) => score >= minScore)
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score
+      return catalogRowSourceRank(left.row) - catalogRowSourceRank(right.row)
+    })
+    .slice(0, limit)
+}
+
+function catalogRowScore(queryKey: string, row: CatalogRow): number {
+  return Math.max(
+    fuzzyScore(queryKey, typeof row.name === 'string' ? matchKey(row.name) : ''),
+    fuzzyScore(queryKey, typeof row.romName === 'string' ? matchKey(row.romName) : ''),
+  )
+}
+
+function fuzzyScore(queryKey: string, candidateKey: string): number {
+  if (!queryKey || !candidateKey) return 0
+  if (queryKey === candidateKey) return 100
+  if (candidateKey.startsWith(`${queryKey} `)) return 93
+  if (queryKey.startsWith(`${candidateKey} `)) return 78
+
+  const queryTokens = queryKey.split(' ')
+  const candidateTokens = candidateKey.split(' ')
+  const candidateTokenSet = new Set(candidateTokens)
+  const matchingTokens = queryTokens.filter((token) => candidateTokenSet.has(token)).length
+
+  const tokenScore = matchingTokens === queryTokens.length
+    ? queryTokens.length === candidateTokens.length
+      ? 96
+      : queryTokens.length >= 2
+        ? 90
+        : 72
+    : (matchingTokens / Math.max(queryTokens.length, 1)) * 82
+
+  const distanceScore = Math.round(
+    (1 - levenshteinDistance(queryKey, candidateKey) / Math.max(queryKey.length, candidateKey.length, 1)) * 100,
+  )
+
+  return Math.max(tokenScore, distanceScore)
+}
+
+function fuzzyAnchors(query: string): string[] {
+  const key = matchKey(query)
+  if (!key) return []
+
+  const seen = new Set<string>()
+  const anchors: string[] = []
+
+  for (const token of key.split(' ')) {
+    if (token.length < 2 || FUZZY_STOP_WORDS.has(token)) continue
+    if (seen.has(token)) continue
+    seen.add(token)
+    anchors.push(token)
+    if (anchors.length === 3) break
+  }
+
+  return anchors
+}
+
+function matchKey(value: string): string {
+  return normalizeCatalogName(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+function levenshteinDistance(left: string, right: string): number {
+  if (left === right) return 0
+  if (!left) return right.length
+  if (!right) return left.length
+
+  let previous = Array.from({ length: right.length + 1 }, (_value, index) => index)
+  let current = new Array<number>(right.length + 1)
+
+  for (let leftIndex = 0; leftIndex < left.length; leftIndex += 1) {
+    current[0] = leftIndex + 1
+
+    for (let rightIndex = 0; rightIndex < right.length; rightIndex += 1) {
+      const cost = left[leftIndex] === right[rightIndex] ? 0 : 1
+      current[rightIndex + 1] = Math.min(
+        current[rightIndex]! + 1,
+        previous[rightIndex + 1]! + 1,
+        previous[rightIndex]! + cost,
+      )
+    }
+
+    const nextPrevious = current
+    current = previous
+    previous = nextPrevious
+  }
+
+  return previous[right.length] ?? 0
+}
+
+function catalogRowSourceRank(row: CatalogRow): number {
+  return row.source === 'no-intro' ? 0 : row.source === 'redump' ? 1 : 2
+}
+
 function lookupHash(statement: StatementSync, hash: string): DatMatch | null {
   const row = statement.get(normalizeHash(hash))
   if (!row) return null
@@ -779,6 +973,11 @@ interface CatalogRow {
   md5: unknown
   sha1: unknown
   sha256: unknown
+}
+
+interface ScoredCatalogRow {
+  row: CatalogRow
+  score: number
 }
 
 function toCatalogSearchResult(row: CatalogRow | undefined): CatalogSearchResult | null {

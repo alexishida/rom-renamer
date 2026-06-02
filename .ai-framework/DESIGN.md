@@ -9,6 +9,9 @@ Tokens vivem em `src/renderer/src/styles.css`, dentro de `:root`. Sempre consumi
 - Base neutra fria com acento emerald para acoes principais e estados positivos.
 - Controles com cara de ferramenta utilitaria: legiveis, compactos, previsiveis e com foco visivel.
 - Feedback visual deve ajudar usuario a entender status de identificacao e impacto de rename.
+- Primeira tela e ferramenta de trabalho, nao landing page: tabela, estados vazios e CTA direto para escolher pasta.
+- Fluxos sensiveis precisam parecer deliberados: preview, confirmacao, conflitos e undo devem ficar visualmente claros.
+- Baixa confianca deve parecer atencao/revisao, nao erro fatal nem sucesso.
 
 ## Tokens
 
@@ -69,7 +72,7 @@ Tokens vivem em `src/renderer/src/styles.css`, dentro de `:root`. Sempre consumi
 - `.content`: area principal da tabela e estados vazios.
 - `.table-wrap`: scroll interno da grade.
 - `.drawer`: painel lateral direito para configuracoes.
-- `.dialog` e `.dialog-backdrop`: modal central para confirmacoes e escolha de pasta.
+- `.dialog` e `.dialog-backdrop`: base de modal central para escolha de pasta, busca no catalogo, catalogo DAT e confirmacao.
 - `.toast`: feedback temporario fixo na parte inferior central.
 
 ## Componentes
@@ -77,12 +80,15 @@ Tokens vivem em `src/renderer/src/styles.css`, dentro de `:root`. Sempre consumi
 ### Botoes
 
 - `.btn` e base dos botoes de texto.
-- `.btn--primary` e unica acao primaria por contexto; usa emerald solido.
+- `.btn--primary` e acao primaria do contexto; usa emerald solido.
 - `.btn--sm` reduz altura para 32px.
+- `.btn--danger` representa remocao/limpeza de catalogo; usar so com confirmacao.
 - `.icon-btn` cobre acoes utilitarias quadradas.
 - `.icon-btn--ghost` remove peso visual quando botao esta dentro de drawer, toast ou header de dialog.
 - `.icon-btn--ok` destaca validacao.
 - `.icon-btn--accent` destaca acao de rename.
+- `.icon-btn--danger` destaca remocao destrutiva dentro de listas.
+- Botoes com icone e texto devem manter texto curto; em telas menores o texto pode sumir na topbar.
 
 ### Chips e filtros
 
@@ -96,6 +102,8 @@ Tokens vivem em `src/renderer/src/styles.css`, dentro de `:root`. Sempre consumi
 - `.badge` serve para confianca e status.
 - Sempre usar mapeamento existente: `high`, `medium`, `low`, `none`, `pending`, `identifying`, `identified`, `validated`, `ignored`, `renamed`, `error`.
 - Badge precisa continuar curto, legivel e com ponto colorido.
+- `high` e `validated` usam emerald; `low` usa laranja; `none` e `error` usam vermelho; `pending` e `identifying` usam info.
+- Origem do match (`No-Intro`/`Redump`) deve ficar subordinada a confianca, nunca competir com badge principal.
 
 ### Tabela
 
@@ -103,30 +111,68 @@ Tokens vivem em `src/renderer/src/styles.css`, dentro de `:root`. Sempre consumi
 - Hover de linha usa `--surface-soft`.
 - Linha selecionada usa `.row.is-selected` com fundo emerald suave e faixa lateral.
 - `.suggest-input` e campo inline de edicao do nome sugerido.
+- `.suggest-search-btn` abre busca manual no catalogo e fica junto do input de sugestao.
 - `.cbx` e checkbox custom de tabela.
 - `.plat-chip` mostra plataforma sem competir com badges de status.
 - `.ident__source` fica subordinado ao badge de confianca.
+- Linhas `ignored` e `renamed` devem perder peso visual e bloquear edicao/selecao.
+- Acoes por linha devem permanecer icon-only com tooltip/title: validar, ignorar, renomear.
+- Tabela deve preservar densidade; nao transformar linhas em cards.
 
 ### Estados vazios e loading
 
 - `.placeholder` centraliza mensagem, icone e CTA.
 - `.spinner` comunica varredura em andamento.
+- `.scan-progress` mostra titulo, detalhe, porcentagem e barra.
+- `.scan-progress--inline` aparece acima da tabela durante leitura com itens ja renderizados.
 - Sempre orientar proximo passo: escolher pasta, limpar filtro ou trocar pasta.
 
 ### Drawer de configuracoes
 
 - Abre pela direita com `translateX` e overlay.
-- Grupo "Geral" fica sempre aberto como secao fixa.
-- Demais grupos usam `<details class="group">`.
+- Grupos usam `.group`, `.group__head` e `.group__content`.
+- Grupo "Geral" concentra recursividade, template, plataforma padrao e estrategia de conflito.
+- Grupo "Catalogo SQLite" informa o uso offline do catalogo.
 - `.switch` cobre toggle binario.
 - Inputs e selects seguem mesmo tratamento de borda, foco e altura.
 
+### Escolha de pasta
+
+- `.folder-modal` reutiliza `.dialog` com largura menor.
+- `.folder-pick-btn` usa borda tracejada quando vazio e borda solida quando preenchido.
+- `.folder-pick-btn__text` deve truncar caminho longo com ellipsis.
+- Seletor de plataforma deve permitir `auto` e todas as plataformas de `PLATFORM_NAMES`.
+- `.field__hint--accent` destaca impacto do override manual.
+
+### Busca no catalogo
+
+- `.catalog-modal` e usada para buscar sugestao por item.
+- `.catalog-search-field` deve ter icone interno e foco emerald.
+- `.catalog-hash-panel` mostra hashes do arquivo em bloco suave.
+- `.hash-list` usa fonte monoespacada e quebra hashes longos sem estourar container.
+- `.catalog-results__status` informa buscando, erro, minimo de caracteres ou quantidade.
+- `.catalog-result` mostra nome, ROM name, origem e hashes; botao `Usar` fica como acao secundaria.
+
+### Catalogo DAT
+
+- `.dat-modal` usa grid com header, tabs, corpo scrollavel e footer.
+- `.dat-tabs` separa `Carregar`, `Carregados` e `Consultar`; badge numerico fica no tab.
+- `.dat-section` enquadra cada area funcional dentro do modal, sem virar pagina separada.
+- `.dat-alert` usa vermelho para erro e `.dat-alert--success` usa emerald.
+- `.dat-import-row` combina seletor de arquivo e acao de importar.
+- `.dat-file-list` lista fila e arquivos carregados com truncamento de caminho.
+- `.dat-result-list` mostra resultado de importacao com estados `imported`, `skipped` e `error`.
+- `.dat-file-meta` destaca contagem de ROMs sem roubar foco do nome do arquivo.
+
 ### Dialogs
 
-- Escolha de pasta e confirmacao de rename reutilizam mesma base visual.
+- Escolha de pasta, busca no catalogo, catalogo DAT e confirmacao de rename reutilizam mesma base visual.
 - Header de dialog usa icone dentro de bloco suave.
 - Corpo pode conter `summary-card`, listas de alteracoes e hints.
 - Footer alinha acoes para direita, com cancelar neutro e confirmar primario.
+- Backdrop fecha dialogs nao destrutivos; acoes destrutivas continuam pedindo confirmacao explicita quando aplicavel.
+- `.summary-grid` e `.summary-card` devem resumir impacto de rename antes de qualquer escrita em disco.
+- `.dialog-list--warn` destaca conflitos, mas nao deve ocultar lista de alteracoes.
 
 ### Toast
 
@@ -142,16 +188,24 @@ Tokens vivem em `src/renderer/src/styles.css`, dentro de `:root`. Sempre consumi
 - Dialog fecha por backdrop e botao de fechar; confirmacao precisa continuar explicita.
 - Busca usa input pill com icone interno e botao de limpar.
 - Selecoes em massa precisam ter feedback visivel na `bulkbar`.
+- Busca de catalogo dispara apos debounce curto e minimo de 2 caracteres.
+- Acoes de importacao, busca, delete e rename precisam expor estado loading/desabilitado.
+- Baixa confianca deve induzir revisao manual: usuario valida antes de renomear.
+- Confirmacao de rename precisa mostrar conflitos, pulados e operacoes em disco.
 
 ## Responsividade
 
 - Breakpoint principal atual: `920px`.
-- Abaixo disso, aplicar:
-- esconder `.brand__name`
-- esconder texto dos botoes principais da topbar e manter icones
-- reduzir padding desses botoes
-- ocultar card/botao de pasta `.folder`
-- reduzir largura da busca para `170px`
+- Abaixo disso:
+  - esconder `.brand__name`
+  - esconder texto dos botoes principais da topbar e manter icones
+  - reduzir padding desses botoes
+  - empilhar `.dat-import-row`
+  - permitir scroll horizontal em `.dat-tabs`
+  - ocultar card/botao de pasta `.folder`
+  - reduzir largura da busca para `170px`
+- Modais devem respeitar `max-height` e manter corpo scrollavel, nao estourar viewport.
+- Textos longos de paths, nomes, hashes e resultados devem truncar ou quebrar dentro do container.
 
 ## Regras de uso
 
@@ -160,3 +214,6 @@ Tokens vivem em `src/renderer/src/styles.css`, dentro de `:root`. Sempre consumi
 - Evitar cor crua, sombra nova ou raio novo fora dos tokens existentes.
 - Preferir densidade confortavel: alturas entre 32px e 40px, gaps curtos e hierarquia clara.
 - Estados visuais devem reforcar fluxo de identificacao, validacao e rename, nunca competir com ele.
+- Nao criar card dentro de card; use listas, secoes, dialogs ou linhas de tabela conforme contexto.
+- Novos componentes devem seguir nomes de classe ja existentes por dominio: `catalog-*`, `dat-*`, `folder-*`, `scan-*`.
+- Quando criar novo estado visual, mapear primeiro para tokens existentes antes de adicionar token novo.

@@ -3,10 +3,10 @@ import { readdir, stat } from 'node:fs/promises'
 import { basename, extname, join, resolve } from 'node:path'
 import type { Config, RomItem, ScanProgress } from '@shared/types'
 import { calculateHashes } from './hash'
-import { closeDatIndex, createDatIndex, findDatMatch, type DatIndex } from './dat'
+import { closeDatIndex, createDatIndex, findDatMatch, findFuzzyDatMatch, type DatIndex } from './dat'
 import { readCueReferences } from './cue'
 import { detectPlatform, isSupportedRomPath } from './platform'
-import { preserveNameMetadata } from './naming'
+import { normalizeNameForSearch, preserveNameMetadata } from './naming'
 
 export async function scanFolder(
   folderPath: string,
@@ -144,6 +144,18 @@ async function buildRomItem(
         suggestedName: preserveNameMetadata(datMatch.name, originalName),
         confidence: 'high',
         source: datMatch.source,
+        status: 'identified',
+      }
+    }
+
+    const fuzzyMatch = findFuzzyDatMatch(datIndex, normalizeNameForSearch(filePath))
+    if (fuzzyMatch) {
+      return {
+        ...baseItem,
+        hashes,
+        suggestedName: preserveNameMetadata(fuzzyMatch.name, originalName),
+        confidence: 'low',
+        source: fuzzyMatch.source,
         status: 'identified',
       }
     }

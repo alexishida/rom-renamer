@@ -19,8 +19,9 @@ Para cada arquivo, tenta em ordem até obter um match com confiança suficiente:
 | 1 | Detecção de plataforma pela extensão | — |
 | 2 | Hash do conteúdo (CRC32/MD5/SHA-1) | — |
 | 3 | Lookup no catalogo SQLite local | **Alta** |
+| 4 | Fuzzy pelo nome no catalogo local | **Baixa** |
 
-Quando o hash nao existe no SQLite, o item fica pendente para validacao/edicao manual.
+Quando o hash nao existe no SQLite, o app tenta uma sugestao fuzzy pelo nome. Se nada confiavel aparecer, o item fica pendente para validacao/edicao manual.
 
 ## Catalogo SQLite
 

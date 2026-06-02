@@ -7,6 +7,7 @@ Fonte oficial de diretrizes do projeto. Use este arquivo como referencia princip
 - O projeto e um app desktop Electron para identificar, validar e renomear ROMs com seguranca.
 - Precisao de identificacao, previsibilidade de rename e clareza de interface valem mais que automacao agressiva.
 - Toda alteracao deve preservar confianca do usuario no que sera escrito em disco.
+- Identificacao offline por catalogo SQLite local e preferivel a chamadas externas durante o fluxo principal.
 
 ## Regras gerais
 
@@ -15,6 +16,7 @@ Fonte oficial de diretrizes do projeto. Use este arquivo como referencia princip
 - Manter textos de interface em portugues consistente com restante do app.
 - Quando regra de produto, comportamento observado e documentacao entrarem em conflito, corrigir documentacao ou codigo para que ambos voltem a refletir mesma verdade.
 - Antes de criar novo padrao, checar se ja existe componente, classe, fluxo ou utilitario equivalente no projeto.
+- OpenSpec em `openspec/specs` documenta requisitos atuais do produto. Mudanca de comportamento deve atualizar spec relevante junto do codigo.
 
 ## Regras de arquitetura
 
@@ -24,6 +26,8 @@ Fonte oficial de diretrizes do projeto. Use este arquivo como referencia princip
 - `src/shared/types.ts` e contrato compartilhado. Mudancas em payloads, status, configuracao ou plataformas devem partir dele.
 - Operacoes sensiveis devem continuar passando por IPC com validacao de entrada no processo main.
 - Regras de negocio de ROM devem ficar fora de componentes React sempre que possivel.
+- `src/main/rom/dat.ts` concentra catalogo SQLite, importacao DAT/XML, busca manual e matching por hash/fuzzy.
+- `scripts/build-rom-catalog.mjs` gera catalogo SQLite bundled em `resources/rom-catalog.sqlite`; manter schema compativel com runtime.
 
 ## Regras de codigo
 
@@ -37,13 +41,34 @@ Fonte oficial de diretrizes do projeto. Use este arquivo como referencia princip
 
 ## Regras de fluxo do produto
 
-- Pipeline de identificacao deve seguir esta ordem: detectar plataforma, calcular hashes, consultar DAT local, consultar API por hash/nome e so entao cair em fallback por nome.
-- Match de DAT/hash continua sendo fonte de maior confianca; API entra como fallback intermediario; sugestao por nome fica por ultimo e com confianca baixa.
+- Pipeline de identificacao deve seguir esta ordem: detectar plataforma, calcular hashes, consultar catalogo SQLite local por hash e so entao tentar fuzzy por nome no catalogo local.
+- Match exato de hash no catalogo local e fonte de maior confianca (`high`).
+- Match fuzzy por nome e apenas sugestao de baixa confianca (`low`) e nunca deve virar rename sem validacao explicita.
+- Quando hash e fuzzy falham, item deve ficar `pending`, sem sugestao automatica confiavel.
 - Rename em lote deve continuar passando por etapa de preview e confirmacao antes de tocar disco.
 - Itens com baixa confianca ou sem sugestao confiavel nao devem ser promovidos a rename automatico sem validacao explicita.
 - Estados (`pending`, `identifying`, `identified`, `validated`, `ignored`, `renamed`, `error`) devem permanecer coerentes em UI, store e main.
 - Undo do ultimo lote e parte do fluxo principal; nao quebrar ou contornar esse caminho.
 - Configuracoes persistidas devem passar por normalizacao antes de uso.
+- Pares CUE/BIN devem ser tratados como unidade: CUE aparece como item principal, BIN referenciado vira sidecar quando possivel.
+- Override manual de plataforma deve vencer deteccao automatica por extensao.
+
+## Regras de catalogo
+
+- Catalogo runtime deve ser SQLite local no `userData`, com copia inicial do bundled quando disponivel.
+- Importacao de DAT/XML deve deduplicar por caminho normalizado e SHA-256 do arquivo.
+- Busca manual no catalogo deve tentar LIKE ranqueado antes de fuzzy.
+- Fuzzy automatico deve usar limiar alto o bastante para evitar falso positivo agressivo.
+- Limpar catalogo ou remover arquivo importado deve ser acao explicita da UI e reportar contagem removida.
+- DATs, XMLs e APIs externas nao devem ser consultados diretamente no scan; scan consulta o SQLite local.
+
+## Regras de rename
+
+- Preview deve calcular conflitos, duplicatas, skips, nomes finais e operacoes CUE sem escrever em disco.
+- Rename real deve usar plano validado no main process e tratar erro por item sem ocultar sucessos.
+- Conflitos devem respeitar estrategia configurada: sufixar ou pular.
+- Templates de nome devem preservar extensao quando `{ext}` nao existir e sanitizar caracteres invalidos.
+- Undo deve inverter ultimo lote registrado e restaurar conteudo de CUE quando houve ajuste de referencias.
 
 ## Regras de layout e design
 

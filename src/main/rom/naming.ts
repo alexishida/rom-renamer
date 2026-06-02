@@ -39,7 +39,11 @@ export function suggestNameFromPath(filePath: string): string | null {
 export function normalizeNameForSearch(filePath: string): string {
   const ext = extname(filePath)
   const stem = basename(filePath, ext)
-  return cleanNameForMatch(stem)
+  return normalizeCatalogName(stem)
+}
+
+export function normalizeCatalogName(value: string): string {
+  return cleanNameForMatch(value)
 }
 
 export function sanitizeFileNamePart(value: string): string {
