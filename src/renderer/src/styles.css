@@ -1979,7 +1979,6 @@ select:disabled {
   max-height: min(760px, 92vh);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  overflow: hidden;
   border-radius: var(--r-lg);
   background: var(--surface);
   box-shadow: var(--shadow-lg);
@@ -2019,6 +2018,128 @@ select:disabled {
 
 .dialog__header .icon-btn {
   margin-left: auto;
+}
+
+/* ============================================================
+   AppSelect — custom dropdown that always opens downward
+   ============================================================ */
+
+.app-select {
+  position: relative;
+}
+
+.app-select__trigger {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px 0 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.app-select__trigger:focus-visible,
+.app-select__trigger[aria-expanded="true"] {
+  border-color: var(--accent);
+  box-shadow: var(--ring);
+}
+
+.app-select__trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.app-select__value {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-select__caret {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  transition: transform 150ms ease;
+}
+
+.app-select__caret.is-open {
+  transform: rotate(180deg);
+}
+
+.app-select__dropdown {
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-lg);
+}
+
+.app-select__option {
+  display: block;
+  width: 100%;
+  padding: 7px 12px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-select__option:hover {
+  background: var(--surface-soft);
+}
+
+.app-select__option.is-selected {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.app-select__group-label {
+  padding: 8px 12px 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.app-select__group + .app-select__group,
+.app-select__option + .app-select__group {
+  border-top: 1px solid var(--border);
+}
+
+.dat-modal__header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.dat-modal__header-right .icon-btn {
+  margin-left: 0;
+}
+
+.dat-modal__rom-total {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .dialog__body {

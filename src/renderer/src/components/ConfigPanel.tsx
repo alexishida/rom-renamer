@@ -4,6 +4,17 @@ import { Database, Settings, SlidersHorizontal, X } from 'lucide-react'
 import type { Config, PlatformOverride } from '@shared/types'
 import { PLATFORM_NAMES } from '@shared/types'
 import { useRomStore } from '@renderer/stores/useRomStore'
+import { AppSelect, type SelectItem } from './AppSelect'
+
+const PLATFORM_SELECT_ITEMS: SelectItem[] = [
+  { value: 'auto', label: 'Autodetectar' },
+  ...PLATFORM_NAMES.map((p) => ({ value: p, label: p })),
+]
+
+const CONFLICT_SELECT_ITEMS: SelectItem[] = [
+  { value: 'suffix', label: 'Sufixar (manter os dois)' },
+  { value: 'skip', label: 'Avisar e pular' },
+]
 
 export function ConfigPanel(): JSX.Element {
   const config = useRomStore((state) => state.config)
@@ -80,31 +91,23 @@ export function ConfigPanel(): JSX.Element {
                 />
               </label>
 
-              <label className="field">
+              <div className="field">
                 <span className="field__label">Plataforma padrao</span>
-                <select
+                <AppSelect
                   value={config.platformOverride}
-                  onChange={(event) => patch({ platformOverride: event.target.value as PlatformOverride })}
-                >
-                  <option value="auto">Autodetectar</option>
-                  {PLATFORM_NAMES.map((platform) => (
-                    <option key={platform} value={platform}>{platform}</option>
-                  ))}
-                </select>
-              </label>
+                  onChange={(v) => patch({ platformOverride: v as PlatformOverride })}
+                  items={PLATFORM_SELECT_ITEMS}
+                />
+              </div>
 
-              <label className="field">
+              <div className="field">
                 <span className="field__label">Conflitos de nome</span>
-                <select
+                <AppSelect
                   value={config.conflictStrategy}
-                  onChange={(event) =>
-                    patch({ conflictStrategy: event.target.value === 'skip' ? 'skip' : 'suffix' })
-                  }
-                >
-                  <option value="suffix">Sufixar (manter os dois)</option>
-                  <option value="skip">Avisar e pular</option>
-                </select>
-              </label>
+                  onChange={(v) => patch({ conflictStrategy: v === 'skip' ? 'skip' : 'suffix' })}
+                  items={CONFLICT_SELECT_ITEMS}
+                />
+              </div>
             </div>
           </section>
 

@@ -229,9 +229,16 @@ export function DatCatalogModal(): JSX.Element | null {
             <h2 id="dat-modal-title">Catalogo DAT</h2>
             <p>{catalogFiles.length} arquivo(s) carregado(s)</p>
           </div>
-          <button className="icon-btn icon-btn--sm icon-btn--ghost" type="button" onClick={() => setOpen(false)} title="Fechar">
-            <X size={18} aria-hidden="true" />
-          </button>
+          <div className="dat-modal__header-right">
+            {!loadingFiles && totalRoms > 0 && (
+              <span className="dat-modal__rom-total">
+                {totalRoms.toLocaleString('pt-BR')} ROMs
+              </span>
+            )}
+            <button className="icon-btn icon-btn--sm icon-btn--ghost" type="button" onClick={() => setOpen(false)} title="Fechar">
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
         </header>
 
         <div className="dat-tabs" role="tablist" aria-label="Catalogo DAT">
@@ -579,4 +586,6 @@ function formatDate(value: string): string {
   }).format(date)
 }
 
-fu
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Falha inesperada.'
+}

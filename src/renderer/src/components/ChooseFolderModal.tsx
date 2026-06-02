@@ -3,6 +3,7 @@ import type { JSX } from 'react'
 import { FolderOpen, FolderSearch, X } from 'lucide-react'
 import { PLATFORM_NAMES, type PlatformOverride } from '@shared/types'
 import { useRomStore } from '@renderer/stores/useRomStore'
+import { AppSelect, type SelectItem } from './AppSelect'
 
 const PLATFORM_GROUPS: ReadonlyArray<{ label: string; platforms: string[] }> = [
   {
@@ -37,6 +38,14 @@ const PLATFORM_GROUPS: ReadonlyArray<{ label: string; platforms: string[] }> = [
     label: 'Outros',
     platforms: ['PC Engine', 'WonderSwan'],
   },
+]
+
+const PLATFORM_SELECT_ITEMS: SelectItem[] = [
+  { value: 'auto', label: 'Autodetectar (recomendado)' },
+  ...PLATFORM_GROUPS.map((group) => ({
+    groupLabel: group.label,
+    options: group.platforms.map((p) => ({ value: p, label: p })),
+  })),
 ]
 
 export function ChooseFolderModal(): JSX.Element | null {
@@ -134,19 +143,11 @@ export function ChooseFolderModal(): JSX.Element | null {
 
             <div className="field">
               <span className="field__label">Plataforma</span>
-              <select
+              <AppSelect
                 value={pendingPlatform}
-                onChange={(event) => setPendingPlatform(event.target.value as PlatformOverride)}
-              >
-                <option value="auto">Autodetectar (recomendado)</option>
-                {PLATFORM_GROUPS.map((group) => (
-                  <optgroup key={group.label} label={group.label}>
-                    {group.platforms.map((platform) => (
-                      <option key={platform} value={platform}>{platform}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
+                onChange={(v) => setPendingPlatform(v as PlatformOverride)}
+                items={PLATFORM_SELECT_ITEMS}
+              />
               {pendingPlatform === 'auto' && (
                 <p className="field__hint">
                   Plataforma detectada pela extensão e nome do arquivo. Para pastas com uma única plataforma, forçar melhora a precisão.
