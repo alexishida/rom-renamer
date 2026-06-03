@@ -80,12 +80,20 @@ Identification MUST query the local SQLite catalog by SHA-1, then MD5, then CRC3
 
 ### Requirement: Fuzzy catalog fallback
 Identification MUST attempt fuzzy local catalog matching by normalized filename only after exact hash matching fails.
+Fuzzy candidate selection MUST prioritize rows that match more relevant filename tokens before applying candidate limits.
 
 #### Scenario: Fuzzy automatic match reaches threshold
 - **WHEN** no hash match exists and fuzzy score is at least 86
 - **THEN** the item is marked `identified`
 - **AND** confidence is `low`
 - **AND** source and suggested name come from the best catalog row.
+
+#### Scenario: Fuzzy automatic match equals normalized catalog name
+- **WHEN** no hash match exists
+- **AND** fuzzy matching finds a catalog row whose normalized `game_name` or `rom_name` equals the normalized filename
+- **THEN** the item is treated as `high` confidence even without an exact hash match
+- **AND** the suggested name still comes from the best catalog row
+- **AND** if the rendered final filename already matches the current file, the item is marked `renamed`.
 
 #### Scenario: Fuzzy match is below threshold
 - **WHEN** no hash match exists and no fuzzy row reaches the automatic threshold

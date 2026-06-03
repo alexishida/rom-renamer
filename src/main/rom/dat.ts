@@ -20,6 +20,7 @@ type DatSource = CatalogSource
 export interface DatMatch {
   name: string
   source: DatSource
+  exactNameMatch: boolean
 }
 
 export interface DatIndex {
@@ -128,7 +129,11 @@ export function findFuzzyDatMatch(index: DatIndex, query: string): DatMatch | nu
   const source = best.row.source
   if (typeof name !== 'string' || !isDatSource(source)) return null
 
-  return { name, source }
+  return {
+    name,
+    source,
+    exactNameMatch: isExactFuzzyNameMatch(query, best.row),
+  }
 }
 
 export async function importDatFiles(filePaths: string[]): Promise<CatalogImportResult> {
@@ -694,6 +699,8 @@ function fuzzyCatalogCandidates(db: DatabaseSync, query: string, catalogFileIds:
 
   const clauses: string[] = []
   const params: Array<string | number> = []
+  const rankClauses: string[] = []
+  const rankParams: Array<string | number> = []
 
   for (const anchor of anchors) {
     const containsTerm = `%${escapeLikeTerm(anchor)}%`
@@ -701,6 +708,8 @@ function fuzzyCatalogCandidates(db: DatabaseSync, query: string, catalogFileIds:
     params.push(containsTerm)
     clauses.push("rom_name LIKE ? ESCAPE '!'")
     params.push(containsTerm)
+    rankClauses.push("(CASE WHEN game_name LIKE ? ESCAPE '!' OR rom_name LIKE ? ESCAPE '!' THEN 1 ELSE 0 END)")
+    rankParams.push(containsTerm, containsTerm)
 
     const prefix = anchor.slice(0, Math.min(3, anchor.length))
     if (prefix.length >= 2) {
@@ -714,6 +723,7 @@ function fuzzyCatalogCandidates(db: DatabaseSync, query: string, catalogFileIds:
 
   const idFilter = buildCatalogFileIdFilter(catalogFileIds)
   if (catalogFileIds) params.push(...catalogFileIds)
+  params.push(...rankParams)
   params.push(MAX_FUZZY_CANDIDATES)
 
   return db.prepare(`
@@ -731,6 +741,7 @@ function fuzzyCatalogCandidates(db: DatabaseSync, query: string, catalogFileIds:
     WHERE (${clauses.join(' OR ')})
     ${idFilter}
     ORDER BY
+      ${rankClauses.join(' + ')} DESC,
       CASE source
         WHEN 'no-intro' THEN 0
         WHEN 'redump' THEN 1
@@ -857,6 +868,15 @@ function catalogRowSourceRank(row: CatalogRow): number {
   return row.source === 'no-intro' ? 0 : row.source === 'redump' ? 1 : 2
 }
 
+function isExactFuzzyNameMatch(query: string, row: CatalogRow): boolean {
+  const queryKey = matchKey(query)
+  if (!queryKey) return false
+
+  const nameKey = typeof row.name === 'string' ? matchKey(row.name) : ''
+  const romNameKey = typeof row.romName === 'string' ? matchKey(row.romName) : ''
+  return queryKey === nameKey || queryKey === romNameKey
+}
+
 function lookupHash(statement: StatementSync, hash: string): DatMatch | null {
   const row = statement.get(normalizeHash(hash))
   if (!row) return null
@@ -865,7 +885,7 @@ function lookupHash(statement: StatementSync, hash: string): DatMatch | null {
   const source = row.source
   if (typeof name !== 'string' || !isDatSource(source)) return null
 
-  return { name, source }
+  return { name, source, exactNameMatch: false }
 }
 
 function countCatalogEntries(db: DatabaseSync): number {

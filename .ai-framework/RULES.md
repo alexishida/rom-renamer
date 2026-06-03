@@ -53,7 +53,9 @@ Fonte oficial de diretrizes do projeto. Use este arquivo como referencia princip
 - Quando houver match exato por hash, nome sugerido deve usar `game_name` do catalogo como base, preservando metadados relevantes do nome original, como regiao, versao e idioma.
 - Match fuzzy por nome e apenas sugestao de baixa confianca (`low`) e nunca deve virar rename sem validacao explicita.
 - Fuzzy automatico deve usar nome normalizado do arquivo apenas depois de falha completa em `SHA-1`, `MD5` e `CRC32`, com limiar alto o bastante para evitar falso positivo agressivo.
+- Fuzzy automatico deve priorizar candidatos que batem mais tokens relevantes do nome antes de aplicar limite de candidatos, evitando que termos comuns como regiao escondam match melhor.
 - Quando fuzzy automatico encontrar match valido, nome sugerido deve usar melhor `game_name` do catalogo e continuar preservando metadados relevantes do nome original.
+- Quando fuzzy automatico encontrar igualdade exata entre nome normalizado do arquivo e nome normalizado do catalogo, match pode ser promovido para confianca `high` mesmo sem hash exato.
 - Regiao detectada no header e metadado de menor autoridade que catalogo e nome original. Ela pode complementar sugestao sem substituir regiao ja confiavel.
 - Quando hash e fuzzy falharem, mas leitura de header encontrar regiao suportada, item pode virar sugestao `low` com `source` `header`, usando nome limpo derivado do arquivo com regiao anexada.
 - Quando hash e fuzzy falham e nao ha fallback confiavel por header, item deve ficar `pending`.

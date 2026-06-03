@@ -166,14 +166,28 @@ async function buildRomItem(
 
     const fuzzyMatch = findFuzzyDatMatch(datIndex, normalizeNameForSearch(filePath))
     if (fuzzyMatch) {
+      const suggestedName = appendRegionTagIfMissing(preserveNameMetadata(fuzzyMatch.name, originalName), region)
+      const confidence: RomItem['confidence'] = fuzzyMatch.exactNameMatch ? 'high' : 'low'
+      const status = confidence === 'high'
+        ? isAlreadyRenamed({
+          ...baseItem,
+          hashes,
+          region,
+          suggestedName,
+          confidence,
+          source: fuzzyMatch.source,
+          status: 'identified',
+        }, config)
+        : 'identified'
+
       return {
         ...baseItem,
         hashes,
         region,
-        suggestedName: appendRegionTagIfMissing(preserveNameMetadata(fuzzyMatch.name, originalName), region),
-        confidence: 'low',
+        suggestedName,
+        confidence,
         source: fuzzyMatch.source,
-        status: 'identified',
+        status,
       }
     }
 
