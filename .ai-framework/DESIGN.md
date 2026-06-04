@@ -18,7 +18,7 @@ Tokens vivem em `src/renderer/src/styles.css`, dentro de `:root`. Sempre consumi
 ### Superficies
 
 - `--bg` `#eceff4`: fundo geral da janela.
-- `--surface` `#ffffff`: cartoes, barras, dialogs, drawer e tabela.
+- `--surface` `#ffffff`: cartoes, barras, dialogs e tabela.
 - `--surface-soft` `#f6f8fb`: hover suave, cabecalhos e blocos secundarios.
 - `--surface-inset` `#eef1f6`: inputs embutidos, chips neutros e fundos internos.
 
@@ -71,7 +71,6 @@ Tokens vivem em `src/renderer/src/styles.css`, dentro de `:root`. Sempre consumi
 - `.statsbar`: barra secundaria com pasta atual, filtros por status e busca.
 - `.content`: area principal da tabela e estados vazios.
 - `.table-wrap`: scroll interno da grade.
-- `.drawer`: painel lateral direito para configuracoes.
 - `.dialog` e `.dialog-backdrop`: base de modal central para escolha de pasta, busca no catalogo, catalogo DAT e confirmacao.
 - `.toast`: feedback temporario fixo na parte inferior central.
 
@@ -84,7 +83,7 @@ Tokens vivem em `src/renderer/src/styles.css`, dentro de `:root`. Sempre consumi
 - `.btn--sm` reduz altura para 32px.
 - `.btn--danger` representa remocao/limpeza de catalogo; usar so com confirmacao.
 - `.icon-btn` cobre acoes utilitarias quadradas.
-- `.icon-btn--ghost` remove peso visual quando botao esta dentro de drawer, toast ou header de dialog.
+- `.icon-btn--ghost` remove peso visual quando botao esta dentro de toast ou header de dialog.
 - `.icon-btn--ok` destaca validacao.
 - `.icon-btn--accent` destaca acao de rename.
 - `.icon-btn--danger` destaca remocao destrutiva dentro de listas.
@@ -126,15 +125,6 @@ Tokens vivem em `src/renderer/src/styles.css`, dentro de `:root`. Sempre consumi
 - `.scan-progress` mostra titulo, detalhe, porcentagem e barra.
 - `.scan-progress--inline` aparece acima da tabela durante leitura com itens ja renderizados.
 - Sempre orientar proximo passo: escolher pasta, limpar filtro ou trocar pasta.
-
-### Drawer de configuracoes
-
-- Abre pela direita com `translateX` e overlay.
-- Grupos usam `.group`, `.group__head` e `.group__content`.
-- Grupo "Geral" concentra recursividade, template, plataforma padrao e estrategia de conflito.
-- Grupo "Catalogo SQLite" informa o uso offline do catalogo.
-- `.switch` cobre toggle binario.
-- Inputs e selects seguem mesmo tratamento de borda, foco e altura.
 
 ### Escolha de pasta
 

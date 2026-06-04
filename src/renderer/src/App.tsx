@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import type { JSX } from 'react'
 import { AlertCircle, CheckCircle2, X } from 'lucide-react'
 import { ChooseFolderModal } from './components/ChooseFolderModal'
-import { ConfigPanel } from './components/ConfigPanel'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { DatCatalogModal } from './components/DatCatalogModal'
 import { RomTable } from './components/RomTable'
@@ -43,7 +42,6 @@ export function App(): JSX.Element {
         <RomTable />
       </div>
 
-      <ConfigPanel />
       <ChooseFolderModal />
       <DatCatalogModal />
 

@@ -176,14 +176,11 @@ npm run build:linux
 
 Os artefatos ficam em `dist/`.
 
-## Configuração
+## Opções de scan
 
-Abra o painel de **Configurações** (ícone de engrenagem) para:
+Ao escolher uma pasta, use o seletor de **Plataforma** para autodetectar ou fixar uma plataforma para todos os arquivos da varredura.
 
-- **Busca recursiva** — varrer subpastas
-- **Template de nome** — ex.: `{Nome}.{ext}`, `{Nome} ({Região}).{ext}`
-- **Conflitos** — sufixar ou pular quando o nome já existe
-- **Catalogo SQLite** — consulta offline em `resources/rom-catalog.sqlite`
+Por padrão, o app varre subpastas, usa o template `{Nome}.{ext}` e sufixa conflitos de nome para preservar ambos os arquivos.
 
 ## Licença
 

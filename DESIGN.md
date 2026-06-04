@@ -4,7 +4,7 @@ Regras de design e UI que devem ser seguidas em todo o projeto.
 
 ## Dropdowns sempre abrem para baixo
 
-Nunca use `<select>` nativo dentro de contêineres com `overflow: hidden` (dialogs, drawers, modais).
+Nunca use `<select>` nativo dentro de contêineres com `overflow: hidden` (dialogs e modais).
 Em Electron/Chromium, `overflow: hidden` no ancestral faz o popup nativo calcular o espaço disponível dentro do contêiner clippado — quando há mais espaço acima, o dropdown abre para cima.
 
 **Regra:** use sempre o componente `AppSelect` (`src/renderer/src/components/AppSelect.tsx`).
@@ -14,7 +14,7 @@ Ele renderiza um dropdown customizado com `position: absolute; top: 100%`, garan
 // Correto
 <AppSelect value={v} onChange={setV} items={[...]} />
 
-// Errado — abre para cima em dialogs/drawers
+// Errado — abre para cima em dialogs/modais
 <select value={v} onChange={...}> ... </select>
 ```
 

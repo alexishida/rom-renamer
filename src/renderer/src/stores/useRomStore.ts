@@ -25,7 +25,6 @@ interface RomStoreState {
   notice: string | null
   error: string | null
   // UI state
-  configOpen: boolean
   folderModalOpen: boolean
   catalogModalOpen: boolean
   statusFilter: StatusFilter
@@ -56,7 +55,6 @@ interface RomStoreState {
   confirmRename: () => Promise<void>
   cancelRename: () => void
   undoLastRename: () => Promise<void>
-  setConfigOpen: (open: boolean) => void
   setFolderModalOpen: (open: boolean) => void
   setCatalogModalOpen: (open: boolean) => void
   setStatusFilter: (filter: StatusFilter) => void
@@ -76,7 +74,6 @@ export const useRomStore = create<RomStoreState>((set, get) => ({
   pendingRenameIds: [],
   notice: null,
   error: null,
-  configOpen: false,
   folderModalOpen: false,
   catalogModalOpen: false,
   statusFilter: 'all',
@@ -313,8 +310,6 @@ export const useRomStore = create<RomStoreState>((set, get) => ({
       set({ error: errorMessage(error) })
     }
   },
-
-  setConfigOpen: (configOpen) => set({ configOpen }),
 
   setFolderModalOpen: (folderModalOpen) => set({ folderModalOpen }),
 

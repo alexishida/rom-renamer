@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { CheckCheck, Database, FolderOpen, Gamepad2, RefreshCw, RotateCcw, Settings } from 'lucide-react'
+import { CheckCheck, Database, FolderOpen, Gamepad2, RefreshCw, RotateCcw } from 'lucide-react'
 import { countByStatus, useRomStore } from '@renderer/stores/useRomStore'
 
 export function Toolbar(): JSX.Element {
@@ -11,7 +11,6 @@ export function Toolbar(): JSX.Element {
   const renameAllValidated = useRomStore((state) => state.renameAllValidated)
   const undoLastRename = useRomStore((state) => state.undoLastRename)
   const setCatalogModalOpen = useRomStore((state) => state.setCatalogModalOpen)
-  const setConfigOpen = useRomStore((state) => state.setConfigOpen)
   const counts = countByStatus(items)
 
   return (
@@ -71,9 +70,6 @@ export function Toolbar(): JSX.Element {
           title="Desfazer último lote renomeado"
         >
           <RotateCcw size={17} aria-hidden="true" />
-        </button>
-        <button className="icon-btn" type="button" onClick={() => setConfigOpen(true)} title="Configurações">
-          <Settings size={17} aria-hidden="true" />
         </button>
       </div>
     </header>
